@@ -19,7 +19,7 @@ import {
 import DktIcon from './DktIcon';
 import ProgressSidebar from './ProgressSidebar';
 import type { FormSection } from './types';
-import { COUNTRY_FLAG_FONT_FAMILY, getCountryFlagFromCode } from './countryUtils';
+import CountryFlag from './CountryFlag';
 
 const { Dragger } = Upload;
 
@@ -94,7 +94,7 @@ const countryOptions = countryCatalog.map((country) => ({
   searchLabel: country.name.toLowerCase(),
   label: (
     <span className="inline-flex items-center gap-1.5">
-      <span style={{ fontFamily: COUNTRY_FLAG_FONT_FAMILY }}>{getCountryFlagFromCode(country.value)}</span>
+      <CountryFlag code={country.value} size={14} />
       <span>{country.name}</span>
     </span>
   ),
@@ -230,7 +230,6 @@ const localFinanceRequiredSuffixes = [
 ];
 
 const getCountryLabel = (code?: string) => countryCatalog.find(country => country.value === code)?.name || '-';
-const getCountryFlag = (code?: string) => getCountryFlagFromCode(code) || '';
 
 const normalizeRole = (role: string) => role.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
@@ -1547,7 +1546,7 @@ export default function TierFormPage() {
                             label: (
                               <div className="flex items-center justify-between pr-4" style={{ width: '100%' }}>
                                 <div className="flex items-center gap-3">
-                                  <span style={{ fontSize: '28px' }}>{getCountryFlag(countryCode)}</span>
+                                  <CountryFlag code={countryCode} size={24} />
                                   <div>
                                     <h5
                                       className="m-0"
@@ -2224,4 +2223,5 @@ export default function TierFormPage() {
     </>
   );
 }
+
 

@@ -1,7 +1,8 @@
 ﻿import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import DktIcon from './DktIcon';
-import { COUNTRY_FLAG_FONT_FAMILY, getCountryDisplayPartsFromName } from './countryUtils';
+import CountryFlag from './CountryFlag';
+import { getCountryDisplayPartsFromName } from './countryUtils';
 
 type ClientStatus = 'validated' | 'pending_business' | 'rejected' | 'archived';
 type SearchMode = 'name' | 'id';
@@ -302,7 +303,7 @@ export default function GestionClientsPage() {
                         const country = getCountryDisplayPartsFromName(client.pays);
                         return (
                           <>
-                            {country.flag && <span style={{ fontFamily: COUNTRY_FLAG_FONT_FAMILY, marginRight: '6px' }}>{country.flag}</span>}
+                            {country.code && <CountryFlag code={country.code} size={14} style={{ marginRight: '6px' }} />}
                             {country.name}
                           </>
                         );
@@ -370,3 +371,4 @@ export default function GestionClientsPage() {
     </div>
   );
 }
+

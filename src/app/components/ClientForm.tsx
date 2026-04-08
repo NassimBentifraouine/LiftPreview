@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import type { FormSection } from './types';
 import { useState, useRef, useCallback, type ReactNode } from 'react';
 import DktIcon from './DktIcon';
-import { COUNTRY_FLAG_FONT_FAMILY, getCountryFlagFromCode } from './countryUtils';
+import CountryFlag from './CountryFlag';
 
 const { TextArea } = Input;
 const { Dragger } = Upload;
@@ -36,7 +36,7 @@ const paysOptions = countryCatalog.map((country) => ({
   searchLabel: country.name.toLowerCase(),
   label: (
     <span className="inline-flex items-center gap-1.5">
-      <span style={{ fontFamily: COUNTRY_FLAG_FONT_FAMILY }}>{getCountryFlagFromCode(country.value)}</span>
+      <CountryFlag code={country.value} size={14} />
       <span>{country.name}</span>
     </span>
   ),
@@ -675,7 +675,7 @@ export default function ClientForm({
                     label: (
                       <div className="flex items-center justify-between pr-4" style={{ width: '100%' }}>
                         <div className="flex items-center gap-3">
-                          <span style={{ fontSize: '28px' }}>{getCountryFlagFromCode(country.value)}</span>
+                          <CountryFlag code={country.value} size={24} />
                           <div>
                             <h5 className="m-0" style={{ fontFamily: 'var(--font-family-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--foreground)' }}>
                               {country.name}
@@ -845,4 +845,5 @@ export default function ClientForm({
     </Form>
   );
 }
+
 
