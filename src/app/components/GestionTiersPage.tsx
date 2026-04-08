@@ -186,9 +186,17 @@ export default function GestionTiersPage() {
     }
   };
 
-  const clearSearch = () => {
+  const clearSearchInput = () => {
     setSearchInput('');
     setCommittedIdQuery('');
+    setCurrentPage(1);
+  };
+
+  const clearSearchAndFilters = () => {
+    setSearchInput('');
+    setCommittedIdQuery('');
+    setStatusFilters([]);
+    setCountryFilters([]);
     setCurrentPage(1);
   };
 
@@ -520,7 +528,7 @@ export default function GestionTiersPage() {
                 />
                 {searchInput && (
                   <button
-                    onClick={clearSearch}
+                    onClick={clearSearchInput}
                     className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center"
                     style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}
                   >
@@ -605,7 +613,7 @@ export default function GestionTiersPage() {
               )}
               {isSearchActive && (
                 <button
-                  onClick={clearSearch}
+                  onClick={clearSearchAndFilters}
                   className="flex items-center gap-1.5 mt-4 px-4 py-2"
                   style={{
                     backgroundColor: 'transparent',

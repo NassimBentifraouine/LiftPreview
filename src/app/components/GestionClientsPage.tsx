@@ -130,9 +130,17 @@ export default function GestionClientsPage() {
     }
   };
 
-  const clearSearch = () => {
+  const clearSearchInput = () => {
     setSearchInput('');
     setCommittedIdQuery('');
+    setCurrentPage(1);
+  };
+
+  const clearSearchAndFilters = () => {
+    setSearchInput('');
+    setCommittedIdQuery('');
+    setStatusFilters([]);
+    setCountryFilters([]);
     setCurrentPage(1);
   };
 
@@ -365,7 +373,7 @@ export default function GestionClientsPage() {
               />
               {searchInput && (
                 <button
-                  onClick={clearSearch}
+                  onClick={clearSearchInput}
                   className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center"
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}
                 >
@@ -406,7 +414,7 @@ export default function GestionClientsPage() {
                     Vérifiez l'orthographe ou essayez avec un autre terme.
                   </p>
                   <button
-                    onClick={clearSearch}
+                    onClick={clearSearchAndFilters}
                     className="flex items-center gap-1.5 mt-4 px-4 py-2"
                     style={{
                       backgroundColor: 'transparent',
@@ -427,12 +435,10 @@ export default function GestionClientsPage() {
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <div style={{ minWidth: '1080px' }}>
-                <div className="grid px-6 py-3 items-center" style={{ gridTemplateColumns: '80px 1fr 1fr 1fr 140px 180px 140px', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ minWidth: '1200px' }}>
+                <div className="grid px-6 py-3 items-center" style={{ gridTemplateColumns: '96px minmax(260px,1.3fr) 180px 220px 190px 190px 120px', borderBottom: '1px solid var(--border)' }}>
                   <span style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}>ID</span>
                   <span style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}>Nom du client</span>
-                  <span style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}>Date de création</span>
-                  <span style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}>Date de mise à jour</span>
                   <Popover trigger="click" placement="bottomLeft" content={countryFilterPanel}>
                     <button
                       className="flex items-center gap-1.5 p-0 bg-transparent border-0 w-fit"
@@ -459,10 +465,12 @@ export default function GestionClientsPage() {
                         color: statusFilters.length > 0 ? 'var(--primary)' : 'var(--muted-foreground)',
                       }}
                     >
-                      État {statusFilters.length > 0 ? `(${statusFilters.length})` : ''}
+                      Statut {statusFilters.length > 0 ? `(${statusFilters.length})` : ''}
                       <DktIcon name="filter" size={13} color={statusFilters.length > 0 ? 'var(--primary)' : 'var(--muted-foreground)'} />
                     </button>
                   </Popover>
+                  <span style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}>Création</span>
+                  <span style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}>Mise à jour</span>
                   <span style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}>Actions</span>
                 </div>
                 {filtered.map((client, i) => {
@@ -474,7 +482,7 @@ export default function GestionClientsPage() {
                       onClick={() => handleOpenClient(client)}
                       className="grid px-6 py-3 items-center"
                       style={{
-                        gridTemplateColumns: '80px 1fr 1fr 1fr 140px 180px 140px',
+                        gridTemplateColumns: '96px minmax(260px,1.3fr) 180px 220px 190px 190px 120px',
                         borderBottom: '1px solid var(--border)',
                         backgroundColor: isArchivedLocked ? '#f6f6f6' : 'transparent',
                         opacity: isArchivedLocked ? 0.6 : 1,
@@ -494,8 +502,6 @@ export default function GestionClientsPage() {
                         {client.id}
                       </span>
                       <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{client.nom}</span>
-                      <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{client.dateCreation}</span>
-                      <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{client.dateMaj}</span>
                       <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--primary)' }}>
                         {(() => {
                           const country = getCountryDisplayPartsFromName(client.pays);
@@ -511,6 +517,8 @@ export default function GestionClientsPage() {
                         <DktIcon name={cfg.icon} size={14} color={cfg.color} />
                         {cfg.label}
                       </span>
+                      <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{client.dateCreation}</span>
+                      <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{client.dateMaj}</span>
                       <div className="flex items-center gap-2">
                         {canValidateBusiness && client.status === 'pending_business' && (
                           <>
