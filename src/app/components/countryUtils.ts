@@ -66,6 +66,8 @@ const COUNTRY_CODE_BY_NAME: Record<string, string> = {
 };
 
 const FLAG_BASE_CODEPOINT = 127397;
+export const COUNTRY_FLAG_FONT_FAMILY =
+  '"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji","Twemoji Mozilla",sans-serif';
 
 const normalizeCountryName = (name: string) =>
   name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
@@ -90,6 +92,20 @@ export const getCountryFlagFromCode = (code?: string) => {
   return String.fromCodePoint(first + FLAG_BASE_CODEPOINT, second + FLAG_BASE_CODEPOINT);
 };
 
+export const getCountryDisplayPartsFromCode = (code?: string) => {
+  const safeCode = code?.toUpperCase();
+  const name = safeCode ? getCountryNameFromCode(safeCode) || safeCode : '';
+  const flag = getCountryFlagFromCode(safeCode);
+  return { code: safeCode, name, flag };
+};
+
+export const getCountryDisplayPartsFromName = (name?: string) => {
+  const safeName = name || '-';
+  const code = getCountryCodeFromName(name);
+  const flag = getCountryFlagFromCode(code);
+  return { code, name: safeName, flag };
+};
+
 export const buildCountryLabel = (code: string, fallbackName?: string) => {
   const name = fallbackName || getCountryNameFromCode(code) || code.toUpperCase();
   const flag = getCountryFlagFromCode(code);
@@ -101,4 +117,3 @@ export const getCountryDisplayFromName = (name?: string) => {
   const code = getCountryCodeFromName(name);
   return code ? buildCountryLabel(code, name) : name;
 };
-

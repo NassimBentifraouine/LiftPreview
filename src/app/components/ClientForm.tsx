@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import type { FormSection } from './types';
 import { useState, useRef, useCallback, type ReactNode } from 'react';
 import DktIcon from './DktIcon';
-import { buildCountryLabel, getCountryFlagFromCode } from './countryUtils';
+import { COUNTRY_FLAG_FONT_FAMILY, getCountryFlagFromCode } from './countryUtils';
 
 const { TextArea } = Input;
 const { Dragger } = Upload;
@@ -33,8 +33,17 @@ const countryCatalog = [
 const paysOptions = countryCatalog.map((country) => ({
   value: country.value,
   name: country.name,
-  label: buildCountryLabel(country.value, country.name),
+  searchLabel: country.name.toLowerCase(),
+  label: (
+    <span className="inline-flex items-center gap-1.5">
+      <span style={{ fontFamily: COUNTRY_FLAG_FONT_FAMILY }}>{getCountryFlagFromCode(country.value)}</span>
+      <span>{country.name}</span>
+    </span>
+  ),
 }));
+
+const countryOptionFilter = (input: string, option?: any) =>
+  ((option?.searchLabel || '').toLowerCase().includes(input.toLowerCase()));
 
 const typeClientOptions = [
   { value: 'b2c', label: 'B2C' },
@@ -351,7 +360,7 @@ export default function ClientForm({
             </Form.Item>
             <div className="grid grid-cols-2 gap-6">
               <Form.Item label={<span style={ls}>Pays d'immatriculation {req}</span>} name="paysImmatriculation" rules={[{ required: true, message: 'Champ requis' }]} className={fc('paysImmatriculation')}>
-                <Select placeholder="SÃ©lectionnez un pays" size="large" showSearch options={paysOptions} />
+                <Select placeholder="SÃ©lectionnez un pays" size="large" showSearch filterOption={countryOptionFilter} options={paysOptions} />
               </Form.Item>
               <Form.Item label={<span style={ls}>Customer Group {req}</span>} name="customerGroup" rules={[{ required: true, message: 'Champ requis' }]} className={fc('customerGroup')}>
                 <Select placeholder="SÃ©lectionnez" size="large" options={customerGroupOptions} />
@@ -512,7 +521,7 @@ export default function ClientForm({
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <Form.Item label={<span style={ls}>Pays Facturant {req}</span>} name="paysFacturant" rules={[{ required: true, message: 'Champ requis' }]} className={fc('paysFacturant')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Remplace la notion E-one Environment</span>}>
-                <Select placeholder="SÃ©lectionnez le pays" size="large" showSearch options={paysOptions} />
+                <Select placeholder="SÃ©lectionnez le pays" size="large" showSearch filterOption={countryOptionFilter} options={paysOptions} />
               </Form.Item>
               <Form.Item label={<span style={ls}>Ship From (Tax ID Pays Client)</span>} name="shipFrom" normalize={(value) => value?.toUpperCase()} className={fc('shipFrom')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Identifiant fiscal du pays d'expÃ©dition</span>}>
                 <Input placeholder="Tax ID pays du client" size="large" suffix={doneIcon('shipFrom')} />
@@ -781,6 +790,7 @@ export default function ClientForm({
             placeholder="SÃ©lectionnez un pays"
             size="large"
             showSearch
+            filterOption={countryOptionFilter}
             value={countryToAdd}
             onChange={(v) => setCountryToAdd(v)}
             options={paysOptions.filter(p => !selectedCountries.includes(p.value))}

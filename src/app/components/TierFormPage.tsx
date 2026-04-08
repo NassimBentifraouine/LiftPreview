@@ -19,7 +19,7 @@ import {
 import DktIcon from './DktIcon';
 import ProgressSidebar from './ProgressSidebar';
 import type { FormSection } from './types';
-import { buildCountryLabel, getCountryFlagFromCode } from './countryUtils';
+import { COUNTRY_FLAG_FONT_FAMILY, getCountryFlagFromCode } from './countryUtils';
 
 const { Dragger } = Upload;
 
@@ -91,8 +91,17 @@ const countryCatalog = [
 
 const countryOptions = countryCatalog.map((country) => ({
   value: country.value,
-  label: buildCountryLabel(country.value, country.name),
+  searchLabel: country.name.toLowerCase(),
+  label: (
+    <span className="inline-flex items-center gap-1.5">
+      <span style={{ fontFamily: COUNTRY_FLAG_FONT_FAMILY }}>{getCountryFlagFromCode(country.value)}</span>
+      <span>{country.name}</span>
+    </span>
+  ),
 }));
+
+const countryOptionFilter = (input: string, option?: any) =>
+  ((option?.searchLabel || '').toLowerCase().includes(input.toLowerCase()));
 
 const natureOptions = [
   { value: 'retail', label: 'Retail' },
@@ -1145,7 +1154,7 @@ export default function TierFormPage() {
                         rules={[{ required: true, message: 'Champ requis' }]}
                         className={fc('tierCountry')}
                       >
-                        <Select size="large" placeholder="Selectionnez" options={countryOptions} showSearch />
+                        <Select size="large" placeholder="Selectionnez" options={countryOptions} showSearch filterOption={countryOptionFilter} />
                       </Form.Item>
                       <Form.Item
                         label={<span style={ls}>Nature {req}</span>}
@@ -1267,7 +1276,7 @@ export default function TierFormPage() {
                         rules={[{ required: true, message: 'Champ requis' }]}
                         className={fc('bankCountry')}
                       >
-                        <Select size="large" placeholder="Selectionnez" options={countryOptions} showSearch />
+                        <Select size="large" placeholder="Selectionnez" options={countryOptions} showSearch filterOption={countryOptionFilter} />
                       </Form.Item>
                       <Form.Item
                         label={<span style={ls}>Cle SWIFT {req}</span>}
@@ -2178,6 +2187,7 @@ export default function TierFormPage() {
           placeholder="Selectionnez un pays"
           size="large"
           showSearch
+          filterOption={countryOptionFilter}
           value={countryToAdd}
           onChange={value => setCountryToAdd(value)}
           options={availableOperationCountries}

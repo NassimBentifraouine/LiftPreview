@@ -1,7 +1,7 @@
 ﻿import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import DktIcon from './DktIcon';
-import { getCountryDisplayFromName } from './countryUtils';
+import { COUNTRY_FLAG_FONT_FAMILY, getCountryDisplayPartsFromName } from './countryUtils';
 
 type TierStatus = 'pending_business' | 'pending_tresorerie' | 'validated' | 'rejected' | 'sap_rejected' | 'archived';
 type SearchMode = 'name' | 'id';
@@ -470,7 +470,15 @@ export default function GestionTiersPage() {
                     <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{tier.dateCreation}</span>
                     <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{tier.dateMaj}</span>
                     <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--primary)' }}>
-                      {getCountryDisplayFromName(tier.pays)}
+                      {(() => {
+                        const country = getCountryDisplayPartsFromName(tier.pays);
+                        return (
+                          <>
+                            {country.flag && <span style={{ fontFamily: COUNTRY_FLAG_FONT_FAMILY, marginRight: '6px' }}>{country.flag}</span>}
+                            {country.name}
+                          </>
+                        );
+                      })()}
                     </span>
                     <span
                       className="px-3 py-1 rounded-full inline-flex items-center gap-1.5 w-fit"
