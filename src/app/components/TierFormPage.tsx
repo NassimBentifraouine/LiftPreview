@@ -85,7 +85,7 @@ const countryCatalog = [
   { value: 'DE', name: 'Allemagne' },
   { value: 'IT', name: 'Italie' },
   { value: 'GB', name: 'Royaume-Uni' },
-  { value: 'US', name: 'Etats-Unis' },
+  { value: 'US', name: 'États-Unis' },
   { value: 'CN', name: 'Chine' },
 ];
 
@@ -154,7 +154,7 @@ const mockTierById: Record<string, PrefillRecord> = {
     addressNumber: '4',
     addressStreet: 'Boulevard de Mons',
     postalCode: '59650',
-    city: 'Villeneuve d Ascq',
+    city: "Villeneuve-d'Ascq",
     iban: 'FR7630006000011234567890189',
     swift: 'AGRIFRPP',
     bankName: 'bnp_fr',
@@ -166,7 +166,7 @@ const mockTierById: Record<string, PrefillRecord> = {
     phone: '+32 2 345 67 89',
     email: 'contact.be@decathlon.com',
     addressNumber: '32',
-    addressStreet: 'Chauss e de Charleroi',
+    addressStreet: 'Chaussée de Charleroi',
     postalCode: '1060',
     city: 'Bruxelles',
     iban: 'BE62510007547061',
@@ -178,44 +178,44 @@ const mockTierById: Record<string, PrefillRecord> = {
 const formSections: FormSection[] = [
   {
     id: 'identite',
-    title: 'Identite (Golden Record)',
-    shortTitle: 'Identite',
-    description: 'Donnees principales et fiscales du tiers',
+    title: 'Identité (Golden Record)',
+    shortTitle: 'Identité',
+    description: 'Données principales et fiscales du tiers',
     icon: <DktIcon name="user" size={18} color="currentColor" />,
     subsections: [
       { id: 'infos-principales', label: 'Informations principales', fields: ['sapId', 'legalName', 'tierCountry', 'tierType', 'nature'] },
       { id: 'identifiants-fiscaux', label: 'Identifiants fiscaux', fields: ['taxId', 'vatNumber', 'sirenSiret', 'ean13', 'vatSubject'] },
-      { id: 'donnees-bancaires', label: 'Donnees bancaires', fields: ['bankName', 'bankCountry', 'swift', 'iban', 'bankCurrency'] },
-      { id: 'adresse-siege', label: 'Adresse siege', fields: ['addressNumber', 'addressStreet', 'postalCode', 'city'] },
-      { id: 'contacts-generaux', label: 'Contacts generaux', fields: ['generalPhone', 'generalEmail'] },
+      { id: 'donnees-bancaires', label: 'Données bancaires', fields: ['bankName', 'bankCountry', 'swift', 'iban', 'bankCurrency'] },
+      { id: 'adresse-siege', label: 'Adresse siège', fields: ['addressNumber', 'addressStreet', 'postalCode', 'city'] },
+      { id: 'contacts-generaux', label: 'Contacts généraux', fields: ['generalPhone', 'generalEmail'] },
     ],
   },
   {
     id: 'roles',
-    title: 'Roles & Perimetre',
-    shortTitle: 'Roles',
-    description: 'Dispatcher AP/AR et pays operationnels',
+    title: 'Rôles & Périmètre',
+    shortTitle: 'Rôles',
+    description: 'Dispatcher AP/AR et pays opérationnels',
     icon: <DktIcon name="users" size={18} color="currentColor" />,
     subsections: [
-      { id: 'roles-actifs', label: 'Roles actifs', fields: ['apRole', 'arRole'] },
-      { id: 'selecteur-pays', label: 'Selecteur de pays', fields: ['operationCountries'] },
+      { id: 'roles-actifs', label: 'Rôles actifs', fields: ['apRole', 'arRole'] },
+      { id: 'selecteur-pays', label: 'Sélecteur de pays', fields: ['operationCountries'] },
     ],
   },
   {
     id: 'finance',
-    title: 'Finance & Specificites Locales',
+    title: 'Finance & Spécificités locales',
     shortTitle: 'Finance',
-    description: 'Parametres AP par pays active',
+    description: 'Paramètres AP par pays activés',
     icon: <DktIcon name="money" size={18} color="currentColor" />,
-    subsections: [{ id: 'accordeons-pays', label: 'Accordeons pays', fields: ['financeByCountry'] }],
+    subsections: [{ id: 'accordeons-pays', label: 'Accordéons pays', fields: ['financeByCountry'] }],
   },
   {
     id: 'justificatifs',
     title: 'Justificatifs',
     shortTitle: 'Documents',
-    description: 'Pieces jointes du dossier',
+    description: 'Pièces jointes du dossier',
     icon: <DktIcon name="clipboard" size={18} color="currentColor" />,
-    subsections: [{ id: 'documents', label: 'Pieces jointes', fields: ['documents'] }],
+    subsections: [{ id: 'documents', label: 'Pièces jointes', fields: ['documents'] }],
   },
 ];
 
@@ -608,7 +608,7 @@ export default function TierFormPage() {
 
     const generatedValue = `${trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${newBankCountry.toLowerCase()}`;
     if (bankOptions.some(option => option.value === generatedValue)) {
-      message.info('Cette banque existe deja.');
+      message.info('Cette banque existe déjà.');
       form.setFieldValue('bankName', generatedValue);
       setBankModalOpen(false);
       setNewBankName('');
@@ -621,7 +621,7 @@ export default function TierFormPage() {
     form.setFieldValue('bankName', generatedValue);
     setBankModalOpen(false);
     setNewBankName('');
-    message.success('Banque ajoutee.');
+    message.success('Banque ajoutée.');
   };
 
   const handleSaveDraft = () => {
@@ -641,7 +641,7 @@ export default function TierFormPage() {
   const handleSubmit = async () => {
     if (readOnly) return;
     if (selectedCountries.length === 0) {
-      message.error('Veuillez ajouter au moins un pays d operation.');
+      message.error("Veuillez ajouter au moins un pays d'opération.");
       return;
     }
     try {
@@ -657,7 +657,7 @@ export default function TierFormPage() {
       });
       message.success('Dossier soumis. Statut : PENDING BUSINESS.');
     } catch {
-      message.error('Veuillez completer les champs requis avant soumission.');
+      message.error('Veuillez compléter les champs requis avant soumission.');
     }
   };
 
@@ -839,7 +839,7 @@ export default function TierFormPage() {
         cursor: 'pointer',
         marginTop: '6px',
       }}
-      title={accordionOpen[sectionId] ? 'Reduire' : 'Deplier'}
+      title={accordionOpen[sectionId] ? 'Réduire' : 'Déplier'}
     >
       <DktIcon
         name={accordionOpen[sectionId] ? 'chevron-up' : 'chevron-down'}
@@ -924,7 +924,7 @@ export default function TierFormPage() {
                   }}
                 >
                   <DktIcon name="arrow-left" size={12} color="rgba(255,255,255,0.6)" />
-                  Retour a la liste
+                  Retour à la liste
                 </button>
                 <h2
                   className="m-0 mb-1"
@@ -947,7 +947,7 @@ export default function TierFormPage() {
                     lineHeight: '1.4',
                   }}
                 >
-                  Formulaire import / creation
+                  Formulaire import / création
                 </p>
                 <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
                   <div className="flex items-center justify-between mb-2">
@@ -1079,7 +1079,7 @@ export default function TierFormPage() {
                       border: 'none',
                     }}
                   >
-                    {readOnly ? 'CONSULTATION' : 'EDITION'}
+                    {readOnly ? 'CONSULTATION' : 'ÉDITION'}
                   </Tag>
                 )}
               </div>
@@ -1087,7 +1087,7 @@ export default function TierFormPage() {
               <Alert
                 showIcon
                 icon={<InfoCircleOutlined />}
-                message="Les donnees ont ete pre-remplies depuis le referentiel SAP. Vous ne pourrez pas modifier les champs verrouilles."
+                message="Les données ont été pré-remplies depuis le référentiel SAP. Vous ne pourrez pas modifier les champs verrouillés."
                 type="info"
                 style={{
                   marginBottom: '22px',
@@ -1105,7 +1105,7 @@ export default function TierFormPage() {
                   <div className="flex-1">
                     <SectionBanner
                       index={1}
-                      title="Identite (General - Golden Record)"
+                      title="Identité (Général - Golden Record)"
                       description="Informations principales, fiscales, bancaires et contacts du tiers"
                       sectionId="identite"
                     />
@@ -1139,12 +1139,12 @@ export default function TierFormPage() {
                       </Form.Item>
                     </div>
                     <Form.Item
-                      label={<span style={ls}>Nom legal {req}</span>}
+                      label={<span style={ls}>Nom légal {req}</span>}
                       name="legalName"
                       rules={[{ required: true, message: 'Champ requis' }]}
                       className={fc('legalName')}
                     >
-                      <Input size="large" placeholder="Nom legal du tiers" suffix={doneIcon('legalName')} />
+                        <Input size="large" placeholder="Nom légal du tiers" suffix={doneIcon('legalName')} />
                     </Form.Item>
                     <div className="grid grid-cols-2 gap-6">
                       <Form.Item
@@ -1153,7 +1153,7 @@ export default function TierFormPage() {
                         rules={[{ required: true, message: 'Champ requis' }]}
                         className={fc('tierCountry')}
                       >
-                        <Select size="large" placeholder="Selectionnez" options={countryOptions} showSearch filterOption={countryOptionFilter} />
+                        <Select size="large" placeholder="Sélectionnez" options={countryOptions} showSearch filterOption={countryOptionFilter} />
                       </Form.Item>
                       <Form.Item
                         label={<span style={ls}>Nature {req}</span>}
@@ -1161,7 +1161,7 @@ export default function TierFormPage() {
                         rules={[{ required: true, message: 'Champ requis' }]}
                         className={fc('nature')}
                       >
-                        <Select size="large" placeholder="Selectionnez" options={natureOptions} />
+                        <Select size="large" placeholder="Sélectionnez" options={natureOptions} />
                       </Form.Item>
                     </div>
                   </div>
@@ -1170,7 +1170,7 @@ export default function TierFormPage() {
                 <Card
                   id="identifiants-fiscaux"
                   title="Identifiants fiscaux"
-                  subtitle="TVA, tax ID et references legales"
+                  subtitle="TVA, tax ID et références légales"
                   icon={<SafetyOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}
                 >
                   <div className="space-y-6">
@@ -1184,7 +1184,7 @@ export default function TierFormPage() {
                         <Input size="large" placeholder="Ex: FR12345678901" suffix={doneIcon('taxId')} />
                       </Form.Item>
                       <Form.Item
-                        label={<span style={ls}>Numero TVA {req}</span>}
+                        label={<span style={ls}>Numéro TVA {req}</span>}
                         name="vatNumber"
                         normalize={(value) => value?.replace(/\s+/g, '').toUpperCase()}
                         rules={[
@@ -1226,7 +1226,7 @@ export default function TierFormPage() {
                       </Form.Item>
                       <div>
                         <label className="block mb-3" style={{ ...ls, color: 'var(--foreground)' }}>
-                          Assujetti a la TVA
+                          Assujetti à la TVA
                         </label>
                         <Form.Item
                           name="vatSubject"
@@ -1243,8 +1243,8 @@ export default function TierFormPage() {
 
                 <Card
                   id="donnees-bancaires"
-                  title="Donnees bancaires"
-                  subtitle="Selection de banque et references bancaires"
+                  title="Données bancaires"
+                  subtitle="Sélection de banque et références bancaires"
                   icon={<BankOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}
                 >
                   <div className="space-y-6">
@@ -1256,7 +1256,7 @@ export default function TierFormPage() {
                           rules={[{ required: true, message: 'Champ requis' }]}
                           className={fc('bankName')}
                         >
-                          <Select size="large" placeholder="Selectionnez une banque" options={bankOptions} showSearch />
+                          <Select size="large" placeholder="Sélectionnez une banque" options={bankOptions} showSearch />
                         </Form.Item>
                       </div>
                       <Button
@@ -1275,10 +1275,10 @@ export default function TierFormPage() {
                         rules={[{ required: true, message: 'Champ requis' }]}
                         className={fc('bankCountry')}
                       >
-                        <Select size="large" placeholder="Selectionnez" options={countryOptions} showSearch filterOption={countryOptionFilter} />
+                        <Select size="large" placeholder="Sélectionnez" options={countryOptions} showSearch filterOption={countryOptionFilter} />
                       </Form.Item>
                       <Form.Item
-                        label={<span style={ls}>Cle SWIFT {req}</span>}
+                        label={<span style={ls}>Clé SWIFT {req}</span>}
                         name="swift"
                         normalize={(value) => value?.replace(/\s+/g, '').toUpperCase()}
                         rules={[
@@ -1301,7 +1301,7 @@ export default function TierFormPage() {
                           { pattern: /^[A-Z]{2}[0-9A-Z]{13,34}$/, message: 'Format IBAN invalide' },
                         ]}
                         className={fc('iban')}
-                        extra={<span style={{ ...ls, fontSize: '12px', color: 'var(--muted-foreground)' }}>Valeur chiffree en back-end (mock)</span>}
+                        extra={<span style={{ ...ls, fontSize: '12px', color: 'var(--muted-foreground)' }}>Valeur chiffrée en back-end (mock)</span>}
                       >
                         <Input size="large" placeholder="Ex: FR7630006000011234567890189" suffix={doneIcon('iban')} />
                       </Form.Item>
@@ -1311,7 +1311,7 @@ export default function TierFormPage() {
                         rules={[{ required: true, message: 'Champ requis' }]}
                         className={fc('bankCurrency')}
                       >
-                        <Select size="large" placeholder="Selectionnez" options={currencyOptions} />
+                        <Select size="large" placeholder="Sélectionnez" options={currencyOptions} />
                       </Form.Item>
                     </div>
                   </div>
@@ -1319,14 +1319,14 @@ export default function TierFormPage() {
 
                 <Card
                   id="adresse-siege"
-                  title="Adresse siege"
-                  subtitle="Adresse principale de l entite"
+                  title="Adresse siège"
+                  subtitle="Adresse principale de l'entité"
                   icon={<HomeOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}
                 >
                   <div className="space-y-6">
                     <div className="grid grid-cols-4 gap-4">
                       <Form.Item
-                        label={<span style={ls}>N Rue {req}</span>}
+                        label={<span style={ls}>N° Rue {req}</span>}
                         name="addressNumber"
                         rules={[{ required: true, message: 'Champ requis' }]}
                         className={fc('addressNumber')}
@@ -1334,7 +1334,7 @@ export default function TierFormPage() {
                         <Input size="large" placeholder="12" suffix={doneIcon('addressNumber')} />
                       </Form.Item>
                       <Form.Item
-                        label={<span style={ls}>Adresse complete {req}</span>}
+                        label={<span style={ls}>Adresse complète {req}</span>}
                         name="addressStreet"
                         rules={[{ required: true, message: 'Champ requis' }]}
                         className={`${fc('addressStreet')} col-span-3`}
@@ -1343,11 +1343,11 @@ export default function TierFormPage() {
                       </Form.Item>
                     </div>
                     <Form.Item
-                      label={<span style={ls}>Complement</span>}
+                      label={<span style={ls}>Complément</span>}
                       name="addressLine2"
                       className={fc('addressLine2')}
                     >
-                      <Input size="large" placeholder="Batiment, etage..." />
+                        <Input size="large" placeholder="Bâtiment, étage..." />
                     </Form.Item>
                     <div className="grid grid-cols-2 gap-6">
                       <Form.Item
@@ -1372,13 +1372,13 @@ export default function TierFormPage() {
 
                 <Card
                   id="contacts-generaux"
-                  title="Contacts generaux"
+                  title="Contacts généraux"
                   subtitle="Canaux de contact globaux"
                   icon={<PhoneOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}
                 >
                   <div className="grid grid-cols-2 gap-6">
                     <Form.Item
-                      label={<span style={ls}>Telephone {req}</span>}
+                      label={<span style={ls}>Téléphone {req}</span>}
                       name="generalPhone"
                       rules={[{ required: true, message: 'Champ requis' }]}
                       className={fc('generalPhone')}
@@ -1391,7 +1391,7 @@ export default function TierFormPage() {
                       />
                     </Form.Item>
                     <Form.Item
-                      label={<span style={ls}>Email generique {req}</span>}
+                      label={<span style={ls}>Email générique {req}</span>}
                       name="generalEmail"
                       normalize={(value) => value?.toLowerCase()}
                       rules={[
@@ -1418,8 +1418,8 @@ export default function TierFormPage() {
                   <div className="flex-1">
                     <SectionBanner
                       index={2}
-                      title="Roles & Perimetre (Dispatcher)"
-                      description="Activation des roles et generation des pays operationnels"
+                      title="Rôles & Périmètre (Dispatcher)"
+                      description="Activation des rôles et génération des pays opérationnels"
                       sectionId="roles"
                     />
                   </div>
@@ -1430,7 +1430,7 @@ export default function TierFormPage() {
                   <>
                 <Card
                   id="roles-actifs"
-                  title="Roles actifs"
+                  title="Rôles actifs"
                   subtitle="Account Payable / Account Receivable"
                   icon={<GlobalOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}
                 >
@@ -1461,7 +1461,7 @@ export default function TierFormPage() {
                           lineHeight: '1.5',
                         }}
                       >
-                        En conservant ce role, ce tiers sera egalement synchronise dans le referentiel Client avec le meme identifiant.
+                        En conservant ce rôle, ce tiers sera également synchronisé dans le référentiel Client avec le même identifiant.
                       </p>
                     </div>
                   </div>
@@ -1496,7 +1496,7 @@ export default function TierFormPage() {
                             lineHeight: '1.3',
                           }}
                         >
-                          Pays d operation
+                          Pays d'opération
                         </h4>
                         <p
                           className="m-0"
@@ -1508,7 +1508,7 @@ export default function TierFormPage() {
                             marginTop: '1px',
                           }}
                         >
-                          Ajoutez et configurez les pays d operation
+                          Ajoutez et configurez les pays d'opération
                         </p>
                       </div>
                     </div>
@@ -1528,7 +1528,7 @@ export default function TierFormPage() {
                       <div className="flex flex-col items-center justify-center py-12" style={{ opacity: 0.5 }}>
                         <GlobalOutlined style={{ fontSize: '48px', color: 'var(--muted-foreground)' }} />
                         <p style={{ ...ls, color: 'var(--muted-foreground)', marginTop: '12px', marginBottom: 0 }}>
-                          Aucun pays configure
+                          Aucun pays configuré
                         </p>
                         <p style={{ ...ls, fontSize: '13px', color: 'var(--muted-foreground)', marginTop: '4px', marginBottom: 0 }}>
                           Cliquez sur "Ajouter un pays" pour commencer
@@ -1569,10 +1569,10 @@ export default function TierFormPage() {
                                   description={
                                     <div>
                                       <p style={{ ...ls, marginBottom: '4px' }}>
-                                        Etes-vous sur de vouloir supprimer {countryLabel} ?
+                                        Êtes-vous sûr de vouloir supprimer {countryLabel} ?
                                       </p>
                                       <p style={{ ...ls, fontSize: '13px', color: 'var(--muted-foreground)', marginBottom: 0 }}>
-                                        Toutes les configurations associees seront perdues.
+                                        Toutes les configurations associées seront perdues.
                                       </p>
                                     </div>
                                   }
@@ -1607,7 +1607,7 @@ export default function TierFormPage() {
                                   }}
                                 >
                                   <p className="m-0" style={{ ...ls, fontSize: '13px', color: 'var(--muted-foreground)' }}>
-                                    Ce pays est active. Vous pouvez maintenant renseigner ses parametres dans le bloc Finance & Specificites Locales.
+                                    Ce pays est activé. Vous pouvez maintenant renseigner ses paramètres dans le bloc Finance & Spécificités locales.
                                   </p>
                                 </div>
                               </div>
@@ -1629,7 +1629,7 @@ export default function TierFormPage() {
                         title={<span style={ls}>Pays disponibles</span>}
                         description={
                           <span style={{ ...ls, fontWeight: 'var(--font-weight-normal)' as const }}>
-                            Vous pouvez ajouter {availableOperationCountries.length} pays supplementaires
+                            Vous pouvez ajouter {availableOperationCountries.length} pays supplémentaires
                           </span>
                         }
                         type="info"
@@ -1653,8 +1653,8 @@ export default function TierFormPage() {
                   <div className="flex-1">
                     <SectionBanner
                       index={3}
-                      title="Finance & Specificites Locales"
-                      description="Un accordeon par pays active avec les parametres AP"
+                      title="Finance & Spécificités locales"
+                      description="Un accordéon par pays activé avec les paramètres AP"
                       sectionId="finance"
                     />
                   </div>
@@ -1665,15 +1665,15 @@ export default function TierFormPage() {
                   <>
                 <Card
                   id="accordeons-pays"
-                  title="Accordeons Fournisseur par pays"
-                  subtitle="Contacts locaux, fiscalite et comptabilite"
+                  title="Accordéons Fournisseur par pays"
+                  subtitle="Contacts locaux, fiscalité et comptabilité"
                   icon={<DollarOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}
                 >
                   {selectedCountries.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12" style={{ opacity: 0.6 }}>
                       <GlobalOutlined style={{ fontSize: '46px', color: 'var(--muted-foreground)' }} />
                       <p style={{ ...ls, marginTop: '12px', marginBottom: 0, color: 'var(--muted-foreground)' }}>
-                        Aucun pays active
+                        Aucun pays activé
                       </p>
                       <p
                         style={{
@@ -1685,7 +1685,7 @@ export default function TierFormPage() {
                           color: 'var(--muted-foreground)',
                         }}
                       >
-                        Selectionnez des pays dans le bloc Roles & Perimetre.
+                        Sélectionnez des pays dans le bloc Rôles & Périmètre.
                       </p>
                     </div>
                   ) : (
@@ -1736,7 +1736,7 @@ export default function TierFormPage() {
                                   fontWeight: 'var(--font-weight-medium)',
                                 }}
                               >
-                                {localComplete ? 'Complet' : 'A completer'}
+                                {localComplete ? 'Complet' : 'À compléter'}
                               </Tag>
                             </div>
                           ),
@@ -1800,7 +1800,7 @@ export default function TierFormPage() {
                                       color: 'var(--foreground)',
                                     }}
                                   >
-                                    B. Parametres Account Payable
+                                    B. Paramètres Account Payable
                                   </h6>
                                   <div className="grid grid-cols-2 gap-6">
                                     <Form.Item
@@ -1809,7 +1809,7 @@ export default function TierFormPage() {
                                       rules={[{ required: true, message: 'Champ requis' }]}
                                       className={fc(`${localPrefix}localCurrency`)}
                                     >
-                                      <Select size="large" options={currencyOptions} placeholder="Selectionnez" />
+                                      <Select size="large" options={currencyOptions} placeholder="Sélectionnez" />
                                     </Form.Item>
                                     <Form.Item label={<span style={ls}>Conditions de paiement</span>} name={`${localPrefix}localPaymentTerms`}>
                                       <Input size="large" readOnly />
@@ -1873,7 +1873,7 @@ export default function TierFormPage() {
                                         color: 'var(--foreground)',
                                       }}
                                     >
-                                      C. Specificites douanieres
+                                      C. Spécificités douanières
                                     </h6>
                                     <div className="grid grid-cols-2 gap-6">
                                       <Form.Item
@@ -1916,7 +1916,7 @@ export default function TierFormPage() {
                     <SectionBanner
                       index={4}
                       title="Justificatifs"
-                      description="Pieces jointes de consolidation du dossier"
+                      description="Pièces jointes de consolidation du dossier"
                       sectionId="justificatifs"
                     />
                   </div>
@@ -1927,8 +1927,8 @@ export default function TierFormPage() {
                   <>
                 <Card
                   id="documents"
-                  title="Pieces jointes"
-                  subtitle="RIB, Kbis, documents legaux"
+                  title="Pièces jointes"
+                  subtitle="RIB, Kbis, documents légaux"
                   icon={<FileTextOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}
                 >
                   <Dragger {...uploadProps}>
@@ -1943,7 +1943,7 @@ export default function TierFormPage() {
                         margin: '10px 0 4px',
                       }}
                     >
-                      Glissez-deposez vos fichiers ici
+                      Glissez-déposez vos fichiers ici
                     </p>
                     <p
                       style={{
@@ -1967,7 +1967,7 @@ export default function TierFormPage() {
                     >
                       <CheckCircleFilled style={{ color: '#52c41a', fontSize: '18px' }} />
                       <span style={{ ...ls, fontWeight: 'var(--font-weight-semibold)' }}>
-                        {files.length} fichier(s) ajoute(s)
+                        {files.length} fichier(s) ajouté(s)
                       </span>
                     </div>
                   )}
@@ -1981,7 +1981,7 @@ export default function TierFormPage() {
                   <Card
                     id="historique-table"
                     title="Historique des modifications"
-                    subtitle="TraÃ§abilitÃ© des actions effectuÃ©es sur la fiche tiers"
+                    subtitle="Traçabilité des actions effectuées sur la fiche tiers"
                     icon={<FileTextOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}
                   >
                     {historyEntries.length === 0 ? (
@@ -2170,7 +2170,7 @@ export default function TierFormPage() {
       </div>
 
       <Modal
-        title="Ajouter un pays d operation"
+        title="Ajouter un pays d'opération"
         open={isCountryModalOpen}
         onOk={handleAddCountry}
         onCancel={() => {
@@ -2181,9 +2181,9 @@ export default function TierFormPage() {
         cancelText="Annuler"
         style={{ top: 20 }}
       >
-        <p style={{ ...ls, color: 'var(--foreground)' }}>Veuillez selectionner le pays que vous souhaitez ajouter :</p>
+        <p style={{ ...ls, color: 'var(--foreground)' }}>Veuillez sélectionner le pays que vous souhaitez ajouter :</p>
         <Select
-          placeholder="Selectionnez un pays"
+          placeholder="Sélectionnez un pays"
           size="large"
           showSearch
           filterOption={countryOptionFilter}

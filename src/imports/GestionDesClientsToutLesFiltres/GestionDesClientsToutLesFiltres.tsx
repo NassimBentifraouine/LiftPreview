@@ -224,7 +224,7 @@ function Frame10() {
     <div className="content-stretch flex items-center relative shrink-0 w-[137px]">
       <div className="content-stretch flex gap-[4px] items-center relative shrink-0 w-[47px]" data-name="Sort Title">
         <div className="flex flex-col font-['Decathlon_Text:Medium',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[#101010] text-[12px] whitespace-nowrap">
-          <p className="leading-[1.333]">Date de Mise a jour</p>
+          <p className="leading-[1.333]">Date de mise à jour</p>
         </div>
         <Frame11 />
       </div>
@@ -924,7 +924,7 @@ export default function GestionDesClientsToutLesFiltres() {
       <Container1 />
       <div className="absolute bg-[#3643ba] content-stretch flex gap-[8px] items-center justify-center left-[1189px] px-[20px] py-[12px] rounded-[999px] top-[215px]" data-name="Button">
         <div className="flex flex-col font-['Decathlon_Text:Medium',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[14px] text-center text-white whitespace-nowrap">
-          <p className="leading-[1.7]">Creer un client</p>
+          <p className="leading-[1.7]">Créer un client</p>
         </div>
         <div className="relative shrink-0 size-[20px]" data-name="End Icon">
           <div className="absolute inset-[16.67%]" data-name="Vector">

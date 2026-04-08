@@ -22,70 +22,70 @@ const mockDrafts: DraftRecord[] = [
     id: '20000451',
     type: 'client',
     name: 'SportMaster International',
-    updatedAt: '08 Avril 2026 a 10h22',
+    updatedAt: '08 Avril 2026 à 10h22',
     updatedAtMs: new Date('2026-04-08T10:22:00').getTime(),
     progress: 84,
-    nextStep: 'Completer les justificatifs',
+    nextStep: 'Compléter les justificatifs',
     owner: 'N. Hadef',
   },
   {
     id: '10000792',
     type: 'tier',
     name: 'Decathlon Portugal Lda',
-    updatedAt: '08 Avril 2026 a 09h14',
+    updatedAt: '08 Avril 2026 à 09h14',
     updatedAtMs: new Date('2026-04-08T09:14:00').getTime(),
     progress: 72,
-    nextStep: 'Verifier les parametres locaux',
+    nextStep: 'Vérifier les paramètres locaux',
     owner: 'M. Chadi',
   },
   {
     id: '20000449',
     type: 'client',
     name: 'FitLife Distribution',
-    updatedAt: '07 Avril 2026 a 17h45',
+    updatedAt: '07 Avril 2026 à 17h45',
     updatedAtMs: new Date('2026-04-07T17:45:00').getTime(),
     progress: 58,
-    nextStep: 'Renseigner les donnees fiscales',
+    nextStep: 'Renseigner les données fiscales',
     owner: 'A. Martin',
   },
   {
     id: '10000784',
     type: 'tier',
     name: 'Decathlon Italia SRL',
-    updatedAt: '07 Avril 2026 a 11h09',
+    updatedAt: '07 Avril 2026 à 11h09',
     updatedAtMs: new Date('2026-04-07T11:09:00').getTime(),
     progress: 41,
-    nextStep: 'Ajouter un pays d operation',
+    nextStep: "Ajouter un pays d'opération",
     owner: 'N. Hadef',
   },
   {
     id: '20000442',
     type: 'client',
     name: 'Alpine Sports GmbH',
-    updatedAt: '06 Avril 2026 a 15h52',
+    updatedAt: '06 Avril 2026 à 15h52',
     updatedAtMs: new Date('2026-04-06T15:52:00').getTime(),
     progress: 29,
-    nextStep: 'Renseigner l identite legale',
+    nextStep: "Renseigner l'identité légale",
     owner: 'S. Leroy',
   },
   {
     id: '10000763',
     type: 'tier',
     name: 'Decathlon UK Ltd',
-    updatedAt: '05 Avril 2026 a 14h18',
+    updatedAt: '05 Avril 2026 à 14h18',
     updatedAtMs: new Date('2026-04-05T14:18:00').getTime(),
     progress: 92,
-    nextStep: 'Pret a soumettre',
+    nextStep: 'Prêt à soumettre',
     owner: 'M. Chadi',
   },
   {
     id: '20000411',
     type: 'client',
     name: 'Mediterranean Outdoor SL',
-    updatedAt: '04 Avril 2026 a 09h03',
+    updatedAt: '04 Avril 2026 à 09h03',
     updatedAtMs: new Date('2026-04-04T09:03:00').getTime(),
     progress: 65,
-    nextStep: 'Completer les parametres finance',
+    nextStep: 'Compléter les paramètres finance',
     owner: 'A. Martin',
   },
 ];
@@ -97,8 +97,8 @@ const typeFilterOptions: { id: TypeFilter; label: string }[] = [
 ];
 
 const sortOptions: { id: SortMode; label: string }[] = [
-  { id: 'updated_desc', label: 'Derniere maj' },
-  { id: 'progress_desc', label: 'Progression decroissante' },
+  { id: 'updated_desc', label: 'Dernière maj' },
+  { id: 'progress_desc', label: 'Progression décroissante' },
   { id: 'progress_asc', label: 'Progression croissante' },
 ];
 
@@ -275,7 +275,7 @@ export default function BrouillonsPage() {
             { label: 'Brouillons totaux', value: stats.total, icon: 'document-text', tone: 'var(--primary)' },
             { label: 'Brouillons clients', value: stats.clients, icon: 'user', tone: '#007DBC' },
             { label: 'Brouillons tiers', value: stats.tiers, icon: 'briefcase', tone: '#D46B08' },
-            { label: 'Prets a soumettre', value: stats.ready, icon: 'check-circle', tone: '#389E0D' },
+            { label: 'Prêts à soumettre', value: stats.ready, icon: 'check-circle', tone: '#389E0D' },
           ].map((card) => (
             <div
               key={card.label}
@@ -437,7 +437,7 @@ export default function BrouillonsPage() {
                 color: 'var(--muted-foreground)',
               }}
             >
-              {filteredDrafts.length} brouillon{filteredDrafts.length > 1 ? 's' : ''} trouve{filteredDrafts.length > 1 ? 's' : ''}
+              {filteredDrafts.length} brouillon{filteredDrafts.length > 1 ? 's' : ''} trouvé{filteredDrafts.length > 1 ? 's' : ''}
             </p>
 
             {hasActiveFilters && (
@@ -467,7 +467,7 @@ export default function BrouillonsPage() {
                   }}
                 >
                   <DktIcon name="refresh" size={13} color="var(--muted-foreground)" />
-                  Reinitialiser
+                  Réinitialiser
                 </button>
               </div>
             )}
@@ -516,7 +516,7 @@ export default function BrouillonsPage() {
                     }}
                   >
                     <DktIcon name="refresh" size={14} color="var(--muted-foreground)" />
-                    Reinitialiser les filtres
+                    Réinitialiser les filtres
                   </button>
                 )}
                 <button
@@ -534,7 +534,7 @@ export default function BrouillonsPage() {
                   }}
                 >
                   <DktIcon name="plus" size={14} color="white" />
-                  Creer une fiche
+                  Créer une fiche
                 </button>
               </div>
             </div>
@@ -548,7 +548,7 @@ export default function BrouillonsPage() {
                     borderBottom: '1px solid var(--border)',
                   }}
                 >
-                  {['Type', 'ID', 'Nom', 'Mise a jour', 'Progression', 'Prochaine etape', 'Actions'].map((header) => (
+                  {['Type', 'ID', 'Nom', 'Mise à jour', 'Progression', 'Prochaine étape', 'Actions'].map((header) => (
                     <span
                       key={header}
                       style={{
@@ -683,7 +683,7 @@ export default function BrouillonsPage() {
                             }}
                           >
                             <DktIcon name="check-circle" size={12} color="#389E0D" />
-                            Pret a soumettre
+                            Prêt à soumettre
                           </span>
                         )}
                       </div>

@@ -1220,7 +1220,7 @@ export default function GestionDesClientsAucunClientTrouvees() {
       <Container />
       <div className="absolute bg-[#3643ba] content-stretch flex gap-[8px] items-center justify-center left-[1189px] px-[20px] py-[12px] rounded-[999px] top-[215px]" data-name="Button">
         <div className="flex flex-col font-['Decathlon_Text:Medium',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[14px] text-center text-white whitespace-nowrap">
-          <p className="leading-[1.7]">Creer un client</p>
+          <p className="leading-[1.7]">Créer un client</p>
         </div>
         <div className="relative shrink-0 size-[20px]" data-name="End Icon">
           <div className="absolute inset-[16.67%]" data-name="Vector">

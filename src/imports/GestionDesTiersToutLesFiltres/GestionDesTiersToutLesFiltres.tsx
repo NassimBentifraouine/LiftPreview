@@ -275,7 +275,7 @@ function Frame12() {
     <div className="content-stretch flex items-center relative shrink-0 w-[137px]">
       <div className="content-stretch flex gap-[4px] items-center relative shrink-0 w-[47px]" data-name="Sort Title">
         <div className="flex flex-col font-['Decathlon_Text:Medium',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[#101010] text-[12px] whitespace-nowrap">
-          <p className="leading-[1.333]">Date de Mise a jour</p>
+          <p className="leading-[1.333]">Date de mise à jour</p>
         </div>
         <Frame13 />
       </div>
