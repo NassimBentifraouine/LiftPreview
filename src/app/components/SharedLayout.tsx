@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
+import { Select } from 'antd';
 import svgPaths from '../../imports/GestionDesClientsIdentiteLegaleCommerciale/svg-1u2yb8hdjl';
 import vectorSvg from '../../imports/Vector/svg-rrze67tj7b';
 import imgIdentityAccess from '../../imports/GestionDesClientsIdentiteLegaleCommerciale/da8e68b134895af709a262e8dd58767788d0542c.png';
@@ -55,8 +56,11 @@ export default function SharedLayout() {
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: 'var(--background)' }}>
       <header className="shrink-0 z-50" style={{ backgroundColor: 'var(--card)' }}>
-        <div className="flex items-center justify-between px-4 md:px-8 xl:px-12 2xl:px-16 py-4 md:py-6">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+        <div
+          className="flex items-center gap-4 px-4 md:px-8 xl:px-12 2xl:px-16 py-3 md:py-4"
+          style={{ borderBottom: '1px solid var(--border)' }}
+        >
+          <div className="flex items-center gap-2 cursor-pointer shrink-0" onClick={() => navigate('/')}>
             <svg className="w-[187px] h-[28px]" fill="none" preserveAspectRatio="none" viewBox="0 0 186.16 28">
               <g>
                 <path d={svgPaths.p1c8976a0} fill="var(--primary)" />
@@ -77,77 +81,38 @@ export default function SharedLayout() {
             </svg>
           </div>
 
-          <div className="flex items-center gap-1">
-            <img src={imgIdentityAccess} alt="Identity Access" className="h-[22px] w-auto object-contain mr-2" />
-            <button
-              className="rounded-full w-12 h-12 flex items-center justify-center"
-              style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
+          <div className="flex items-center gap-2.5 min-w-0 ml-auto overflow-x-auto py-1">
+            <span
+              className="shrink-0"
+              style={{
+                fontFamily: 'var(--font-family-text)',
+                fontSize: '12px',
+                color: 'var(--foreground)',
+                fontWeight: 'var(--font-weight-semibold)',
+              }}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 20 20">
-                <path d={svgPaths.p36ff6200} fill="var(--foreground)" />
-              </svg>
-            </button>
-            <button
-              className="rounded-full w-12 h-12 flex items-center justify-center"
-              style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
-            >
-              <svg className="w-[15.5px] h-[19.95px]" fill="none" viewBox="0 0 15.5 19.95">
-                <path clipRule="evenodd" d={svgPaths.p1ac0e600} fill="var(--foreground)" fillRule="evenodd" />
-              </svg>
-            </button>
-          </div>
-        </div>
+              Rôle actif : {permissions.ldap}
+            </span>
 
-        <div className="px-4 md:px-8 xl:px-12 2xl:px-16 pb-3 md:pb-4" style={{ borderTop: '1px solid var(--border)' }}>
-          <div className="flex items-start justify-between gap-4 pt-3 flex-wrap">
-            <div>
-              <p
-                className="m-0"
-                style={{ fontFamily: 'var(--font-family-text)', fontSize: '12px', color: 'var(--muted-foreground)' }}
-              >
-                Simulation des rôles LDAP (maquette front)
-              </p>
-              <p
-                className="m-0 mt-1"
-                style={{ fontFamily: 'var(--font-family-text)', fontSize: '13px', color: 'var(--foreground)', fontWeight: 'var(--font-weight-semibold)' }}
-              >
-                Rôle actif : {permissions.ldap}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-1.5 justify-end max-w-[940px]">
-              {roleOptions.map(option => {
-                const active = option.role === role;
-                return (
-                  <button
-                    key={option.role}
-                    onClick={() => {
-                      setRole(option.role);
-                      navigate('/', { replace: true });
-                    }}
-                    className="px-2.5 py-1.5 rounded-full"
-                    style={{
-                      border: active ? '1px solid var(--primary)' : '1px solid var(--border)',
-                      backgroundColor: active ? 'rgba(54,67,186,0.08)' : 'var(--card)',
-                      color: active ? 'var(--primary)' : 'var(--muted-foreground)',
-                      fontFamily: 'var(--font-family-text)',
-                      fontSize: '12px',
-                      fontWeight: active ? 'var(--font-weight-semibold)' : 'var(--font-weight-medium)',
-                      cursor: 'pointer',
-                    }}
-                    title={option.label}
-                  >
-                    {option.shortLabel}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+            <Select
+              size="small"
+              value={role}
+              popupMatchSelectWidth={false}
+              onChange={(nextRole) => {
+                setRole(nextRole as typeof role);
+                navigate('/', { replace: true });
+              }}
+              options={roleOptions.map(option => ({
+                value: option.role,
+                label: option.shortLabel,
+              }))}
+              style={{ minWidth: '170px' }}
+            />
 
-          <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
             {roleHighlights.map(chip => (
               <span
                 key={chip}
-                className="px-2 py-1 rounded-full inline-flex items-center gap-1"
+                className="px-2 py-1 rounded-full inline-flex items-center gap-1 shrink-0"
                 style={{
                   backgroundColor: 'var(--input-background)',
                   border: '1px solid var(--border)',
@@ -161,6 +126,26 @@ export default function SharedLayout() {
                 {chip}
               </span>
             ))}
+
+            <div className="flex items-center gap-0.5 shrink-0 ml-1">
+              <img src={imgIdentityAccess} alt="Identity Access" className="h-[20px] w-auto object-contain mr-1" />
+              <button
+                className="rounded-full w-9 h-9 flex items-center justify-center"
+                style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 20 20">
+                  <path d={svgPaths.p36ff6200} fill="var(--foreground)" />
+                </svg>
+              </button>
+              <button
+                className="rounded-full w-9 h-9 flex items-center justify-center"
+                style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
+              >
+                <svg className="w-[14px] h-[18px]" fill="none" viewBox="0 0 15.5 19.95">
+                  <path clipRule="evenodd" d={svgPaths.p1ac0e600} fill="var(--foreground)" fillRule="evenodd" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -206,7 +191,7 @@ export default function SharedLayout() {
             margin: 0,
           }}
         >
-          LIFT évolue. Cette application est en cours de développement (MVP). Vos retours sont précieux pour nous aider à l’améliorer.
+          LIFT évolue. Cette application est en cours de développement (MVP). Vos retours sont précieux pour nous aider à l'améliorer.
         </p>
         <p
           style={{
@@ -223,4 +208,3 @@ export default function SharedLayout() {
     </div>
   );
 }
-
