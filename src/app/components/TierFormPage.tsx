@@ -20,6 +20,7 @@ import DktIcon from './DktIcon';
 import ProgressSidebar from './ProgressSidebar';
 import type { FormSection } from './types';
 import CountryFlag from './CountryFlag';
+import { maskIban, useRoleAccess } from './RoleAccess';
 
 const { Dragger } = Upload;
 
@@ -35,16 +36,6 @@ interface HistoryEntry {
   oldValue: string;
   newValue: string;
 }
-
-const historyVisibleRoles = new Set([
-  'editor',
-  'editeur',
-  'validateur',
-  'validator',
-  'admin',
-  'auditor',
-  'auditeur',
-]);
 
 const mockHistoryByTier: Record<string, Omit<HistoryEntry, 'id'>[]> = {
   '100001': [
@@ -231,8 +222,6 @@ const localFinanceRequiredSuffixes = [
 
 const getCountryLabel = (code?: string) => countryCatalog.find(country => country.value === code)?.name || '-';
 
-const normalizeRole = (role: string) => role.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-
 const formatHistoryDate = (date: Date) => {
   const day = `${date.getDate()}`.padStart(2, '0');
   const month = `${date.getMonth() + 1}`.padStart(2, '0');
@@ -284,13 +273,15 @@ const statusConfig: Record<Exclude<FormStatus, null>, { label: string; color: st
 export default function TierFormPage() {
   const [form] = Form.useForm();
   const { message } = App.useApp();
+  const { permissions } = useRoleAccess();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [generatedTierId] = useState(() => `10${Math.floor(Math.random() * 100000)}`);
 
   const tierId = searchParams.get('tierId') || generatedTierId;
   const mode = searchParams.get('mode') === 'view' ? 'view' : 'edit';
-  const readOnly = mode === 'view';
+  const canEditTier = permissions.canCreateTiers || permissions.isAdmin;
+  const readOnly = mode === 'view' || !canEditTier;
 
   const [activeSection, setActiveSection] = useState<string>('identite');
   const [activeSubsection, setActiveSubsection] = useState<string>('infos-principales');
@@ -328,8 +319,10 @@ export default function TierFormPage() {
   const iban = Form.useWatch('iban', form) as string | undefined;
   const apRole = Form.useWatch('apRole', form) as boolean | undefined;
   const arRole = Form.useWatch('arRole', form) as boolean | undefined;
-  const currentUserRole = normalizeRole(searchParams.get('role') || 'editor');
-  const canViewHistory = readOnly && historyVisibleRoles.has(currentUserRole);
+  const canViewHistory = readOnly && permissions.canViewTierHistory;
+  const displayedIban = permissions.canSeeBankDetails ? (iban || '-') : maskIban(iban);
+  const canValidateBusiness = permissions.canValidateBusinessTiers || permissions.isAdmin;
+  const canValidateTreasury = permissions.canValidateTreasuryTiers;
   const availableOperationCountries = useMemo(
     () => countryOptions.filter(option => !selectedCountries.includes(option.value)),
     [selectedCountries],
@@ -661,6 +654,41 @@ export default function TierFormPage() {
     }
   };
 
+  const handleBusinessValidation = (action: 'Validate' | 'Reject') => {
+    const previousStatus = status ? statusConfig[status].label : 'PENDING BUSINESS';
+    const nextStatus = action === 'Validate' ? 'VALIDATED' : 'REJECTED';
+
+    appendHistoryEntry({
+      user: 'Business Validator',
+      action,
+      field: 'Status',
+      oldValue: previousStatus,
+      newValue: nextStatus,
+    });
+
+    message.success(
+      action === 'Validate'
+        ? 'Validation Business effectuée (mock).'
+        : 'Rejet Business effectué (mock).',
+    );
+  };
+
+  const handleTreasuryValidation = (action: 'Validate' | 'Reject') => {
+    appendHistoryEntry({
+      user: 'Trésorerie Validator',
+      action,
+      field: 'BANK_WALLET',
+      oldValue: 'PENDING TRESORERIE',
+      newValue: action === 'Validate' ? 'APPROVED' : 'REJECTED',
+    });
+
+    message.success(
+      action === 'Validate'
+        ? 'BANK_WALLET approuvé (mock).'
+        : 'BANK_WALLET rejeté (mock).',
+    );
+  };
+
   const fc = (fieldName: string) => (completedFields.has(fieldName) ? 'field-completed' : '');
   const doneIcon = (fieldName: string) =>
     completedFields.has(fieldName) ? <CheckCircleFilled style={{ color: '#52c41a' }} /> : undefined;
@@ -850,7 +878,7 @@ export default function TierFormPage() {
   );
 
   const currentStatus = status ? statusConfig[status] : null;
-  const canShowClientLink = !!apRole && !!arRole;
+  const canShowClientLink = !!apRole && !!arRole && permissions.canAccessClients;
 
   return (
     <>
@@ -1303,7 +1331,16 @@ export default function TierFormPage() {
                         className={fc('iban')}
                         extra={<span style={{ ...ls, fontSize: '12px', color: 'var(--muted-foreground)' }}>Valeur chiffrée en back-end (mock)</span>}
                       >
-                        <Input size="large" placeholder="Ex: FR7630006000011234567890189" suffix={doneIcon('iban')} />
+                        {permissions.canSeeBankDetails ? (
+                          <Input size="large" placeholder="Ex: FR7630006000011234567890189" suffix={doneIcon('iban')} />
+                        ) : (
+                          <Input.Password
+                            size="large"
+                            placeholder="IBAN masqué"
+                            visibilityToggle={false}
+                            autoComplete="new-password"
+                          />
+                        )}
                       </Form.Item>
                       <Form.Item
                         label={<span style={ls}>Devise {req}</span>}
@@ -1721,7 +1758,7 @@ export default function TierFormPage() {
                                     color: 'var(--muted-foreground)',
                                   }}
                                 >
-                                  IBAN: {iban || '-'}
+                                  IBAN: {displayedIban}
                                 </p>
                               </div>
                               <Tag
@@ -1785,7 +1822,7 @@ export default function TierFormPage() {
                                       <Input size="large" placeholder="Nom pour paiement" suffix={doneIcon(`${localPrefix}localPaymentName`)} />
                                     </Form.Item>
                                     <Form.Item label={<span style={ls}>Rappel IBAN</span>}>
-                                      <Input size="large" value={iban || '-'} readOnly />
+                                      <Input size="large" value={displayedIban} readOnly />
                                     </Form.Item>
                                   </div>
                                 </div>
@@ -2126,43 +2163,121 @@ export default function TierFormPage() {
               )}
 
               <div className="flex items-center gap-3 ml-auto">
-                <button
-                  onClick={handleSaveDraft}
-                  disabled={readOnly}
-                  className="px-5 py-2.5"
-                  style={{
-                    backgroundColor: 'var(--card)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-button)',
-                    cursor: readOnly ? 'not-allowed' : 'pointer',
-                    fontFamily: 'var(--font-family-text)',
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 'var(--font-weight-medium)',
-                    color: 'var(--foreground)',
-                    opacity: readOnly ? 0.6 : 1,
-                  }}
-                >
-                  Save as Draft
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={readOnly}
-                  className="px-7 py-2.5"
-                  style={{
-                    backgroundColor: 'var(--primary)',
-                    border: 'none',
-                    borderRadius: 'var(--radius-button)',
-                    cursor: readOnly ? 'not-allowed' : 'pointer',
-                    fontFamily: 'var(--font-family-text)',
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 'var(--font-weight-semibold)',
-                    color: 'white',
-                    boxShadow: '0 2px 8px rgba(54,67,186,0.3)',
-                    opacity: readOnly ? 0.6 : 1,
-                  }}
-                >
-                  Submit
-                </button>
+                {canValidateBusiness && (
+                  <>
+                    <button
+                      onClick={() => handleBusinessValidation('Validate')}
+                      className="px-5 py-2.5"
+                      style={{
+                        backgroundColor: '#F6FFED',
+                        border: '1px solid #B7EB8F',
+                        borderRadius: 'var(--radius-button)',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-family-text)',
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 'var(--font-weight-medium)',
+                        color: '#389E0D',
+                      }}
+                    >
+                      Valider Business
+                    </button>
+                    <button
+                      onClick={() => handleBusinessValidation('Reject')}
+                      className="px-5 py-2.5"
+                      style={{
+                        backgroundColor: '#FFF1F0',
+                        border: '1px solid #FFA39E',
+                        borderRadius: 'var(--radius-button)',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-family-text)',
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 'var(--font-weight-medium)',
+                        color: '#CF1322',
+                      }}
+                    >
+                      Rejeter Business
+                    </button>
+                  </>
+                )}
+
+                {canValidateTreasury && (
+                  <>
+                    <button
+                      onClick={() => handleTreasuryValidation('Validate')}
+                      className="px-5 py-2.5"
+                      style={{
+                        backgroundColor: '#F6FFED',
+                        border: '1px solid #B7EB8F',
+                        borderRadius: 'var(--radius-button)',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-family-text)',
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 'var(--font-weight-medium)',
+                        color: '#389E0D',
+                      }}
+                    >
+                      Approuver BANK_WALLET
+                    </button>
+                    <button
+                      onClick={() => handleTreasuryValidation('Reject')}
+                      className="px-5 py-2.5"
+                      style={{
+                        backgroundColor: '#FFF1F0',
+                        border: '1px solid #FFA39E',
+                        borderRadius: 'var(--radius-button)',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-family-text)',
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 'var(--font-weight-medium)',
+                        color: '#CF1322',
+                      }}
+                    >
+                      Rejeter BANK_WALLET
+                    </button>
+                  </>
+                )}
+
+                {canEditTier && (
+                  <>
+                    <button
+                      onClick={handleSaveDraft}
+                      disabled={readOnly}
+                      className="px-5 py-2.5"
+                      style={{
+                        backgroundColor: 'var(--card)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-button)',
+                        cursor: readOnly ? 'not-allowed' : 'pointer',
+                        fontFamily: 'var(--font-family-text)',
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 'var(--font-weight-medium)',
+                        color: 'var(--foreground)',
+                        opacity: readOnly ? 0.6 : 1,
+                      }}
+                    >
+                      Save as Draft
+                    </button>
+                    <button
+                      onClick={handleSubmit}
+                      disabled={readOnly}
+                      className="px-7 py-2.5"
+                      style={{
+                        backgroundColor: 'var(--primary)',
+                        border: 'none',
+                        borderRadius: 'var(--radius-button)',
+                        cursor: readOnly ? 'not-allowed' : 'pointer',
+                        fontFamily: 'var(--font-family-text)',
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 'var(--font-weight-semibold)',
+                        color: 'white',
+                        boxShadow: '0 2px 8px rgba(54,67,186,0.3)',
+                        opacity: readOnly ? 0.6 : 1,
+                      }}
+                    >
+                      Submit
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

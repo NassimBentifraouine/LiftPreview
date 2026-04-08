@@ -1,8 +1,10 @@
-﻿import { useState, useMemo } from 'react';
+﻿import { useMemo, useState } from 'react';
+import { App } from 'antd';
 import { useNavigate } from 'react-router';
 import DktIcon from './DktIcon';
 import CountryFlag from './CountryFlag';
 import { getCountryDisplayPartsFromName } from './countryUtils';
+import { useRoleAccess } from './RoleAccess';
 
 type ClientStatus = 'validated' | 'pending_business' | 'rejected' | 'archived';
 type SearchMode = 'name' | 'id';
@@ -30,8 +32,6 @@ const mockClients: Client[] = [
   { id: '200004', nom: 'Mediterranean Outdoor SL', dateCreation: '3 Mars 2026 à 16h34', dateMaj: '4 Mars 2026 à 16h34', pays: 'Espagne', status: 'archived' },
 ];
 
-const isAuditor = false;
-
 const searchModes: { id: SearchMode; label: string }[] = [
   { id: 'name', label: 'Recherche par nom' },
   { id: 'id', label: 'Recherche par ID' },
@@ -47,26 +47,40 @@ const searchById = (clients: Client[], query: string) => {
 };
 
 export default function GestionClientsPage() {
+  const { message } = App.useApp();
+  const { permissions } = useRoleAccess();
   const navigate = useNavigate();
+
+  const [clients, setClients] = useState<Client[]>(mockClients);
   const [searchMode, setSearchMode] = useState<SearchMode>('name');
   const [searchInput, setSearchInput] = useState('');
   const [committedIdQuery, setCommittedIdQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+
+  const canCreateClient = permissions.canCreateClients || permissions.isAdmin;
+  const canValidateBusiness = permissions.canValidateBusinessClients || permissions.isAdmin;
+  const canViewArchived = permissions.canViewArchivedClients;
+  const canOpenArchived = permissions.canOpenArchivedClients || permissions.isAdmin;
 
   const trimmedInput = searchInput.trim();
   const isNameSearchActive = searchMode === 'name' && trimmedInput.length >= 3;
   const isIdSearchActive = searchMode === 'id' && committedIdQuery.length > 0;
   const isSearchActive = isNameSearchActive || isIdSearchActive;
 
+  const visibleClients = useMemo(
+    () => (canViewArchived ? clients : clients.filter(client => client.status !== 'archived')),
+    [clients, canViewArchived],
+  );
+
   const filtered = useMemo(() => {
     if (searchMode === 'name') {
-      if (!isNameSearchActive) return mockClients;
-      return searchByName(mockClients, trimmedInput);
+      if (!isNameSearchActive) return visibleClients;
+      return searchByName(visibleClients, trimmedInput);
     }
 
-    if (!isIdSearchActive) return mockClients;
-    return searchById(mockClients, committedIdQuery);
-  }, [searchMode, isNameSearchActive, isIdSearchActive, trimmedInput, committedIdQuery]);
+    if (!isIdSearchActive) return visibleClients;
+    return searchById(visibleClients, committedIdQuery);
+  }, [searchMode, isNameSearchActive, isIdSearchActive, trimmedInput, committedIdQuery, visibleClients]);
 
   const handleModeChange = (mode: SearchMode) => {
     if (mode === searchMode) return;
@@ -96,9 +110,21 @@ export default function GestionClientsPage() {
   };
 
   const handleOpenClient = (client: Client) => {
-    const isArchivedLocked = client.status === 'archived' && !isAuditor;
+    const isArchivedLocked = client.status === 'archived' && !canOpenArchived;
     if (isArchivedLocked) return;
     navigate(`/clients/new?clientId=${client.id}&mode=view`);
+  };
+
+  const handleBusinessDecision = (clientId: string, status: ClientStatus) => {
+    setClients(previous => previous.map(client => (
+      client.id === clientId ? { ...client, status } : client
+    )));
+
+    message.success(
+      status === 'validated'
+        ? `Client ${clientId} validé (mock).`
+        : `Client ${clientId} rejeté (mock).`,
+    );
   };
 
   const ls = { fontFamily: 'var(--font-family-text)' };
@@ -106,7 +132,6 @@ export default function GestionClientsPage() {
   return (
     <div style={{ backgroundColor: 'rgba(245,244,245,0.7)', minHeight: 'calc(100vh - 180px)' }}>
       <div className="max-w-[1440px] mx-auto px-16 pt-10 pb-8">
-        {/* Title + Button */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="m-0" style={{ fontFamily: 'var(--font-family-display)', fontSize: '28px', fontWeight: 'var(--font-weight-semibold)', color: 'var(--foreground)', lineHeight: '42px' }}>
@@ -116,28 +141,28 @@ export default function GestionClientsPage() {
               Consultez et gérez tous les clients
             </p>
           </div>
-          <button
-            onClick={() => navigate('/clients/new')}
-            className="flex items-center gap-2 px-6 py-2.5 shrink-0"
-            style={{
-              backgroundColor: 'var(--primary)',
-              color: 'white',
-              border: 'none',
-              borderRadius: 'var(--radius-button)',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-family-text)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-weight-medium)',
-            }}
-          >
-            Créer un client
-            <DktIcon name="plus" size={16} color="white" />
-          </button>
+          {canCreateClient && (
+            <button
+              onClick={() => navigate('/clients/new')}
+              className="flex items-center gap-2 px-6 py-2.5 shrink-0"
+              style={{
+                backgroundColor: 'var(--primary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: 'var(--radius-button)',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-family-text)',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 'var(--font-weight-medium)',
+              }}
+            >
+              Créer un client
+              <DktIcon name="plus" size={16} color="white" />
+            </button>
+          )}
         </div>
 
-        {/* Table */}
         <div style={{ backgroundColor: 'var(--card)', borderRadius: 'var(--radius-card)', border: '1px solid var(--border)', overflow: 'hidden' }}>
-          {/* Search bar */}
           <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
             <div
               className="inline-flex items-center p-1 mb-3"
@@ -222,9 +247,10 @@ export default function GestionClientsPage() {
                 {filtered.length} résultat{filtered.length !== 1 ? 's' : ''} trouvé{filtered.length !== 1 ? 's' : ''}
               </p>
             )}
-            {filtered.some(client => client.status === 'archived') && !isAuditor && (
+
+            {!canViewArchived && clients.some(client => client.status === 'archived') && (
               <p className="m-0 mt-1" style={{ fontFamily: 'var(--font-family-text)', fontSize: '12px', fontWeight: 'var(--font-weight-normal)', color: 'var(--muted-foreground)' }}>
-                Les clients archivés sont visibles mais verrouillés.
+                Les clients archivés sont masqués pour ce rôle.
               </p>
             )}
           </div>
@@ -262,21 +288,21 @@ export default function GestionClientsPage() {
             </div>
           ) : (
             <>
-              <div className="grid px-6 py-3" style={{ gridTemplateColumns: '80px 1fr 1fr 1fr 100px 180px 80px', borderBottom: '1px solid var(--border)' }}>
+              <div className="grid px-6 py-3" style={{ gridTemplateColumns: '80px 1fr 1fr 1fr 100px 180px 140px', borderBottom: '1px solid var(--border)' }}>
                 {['ID', 'Nom du client', 'Date de création ↓', 'Date de mise à jour ↓', 'Pays', 'État', 'Actions'].map(h => (
                   <span key={h} style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}>{h}</span>
                 ))}
               </div>
               {filtered.map((client, i) => {
                 const cfg = statusConfig[client.status];
-                const isArchivedLocked = client.status === 'archived' && !isAuditor;
+                const isArchivedLocked = client.status === 'archived' && !canOpenArchived;
                 return (
                   <div
                     key={`${client.id}-${i}`}
                     onClick={() => handleOpenClient(client)}
                     className="grid px-6 py-3 items-center"
                     style={{
-                      gridTemplateColumns: '80px 1fr 1fr 1fr 100px 180px 80px',
+                      gridTemplateColumns: '80px 1fr 1fr 1fr 100px 180px 140px',
                       borderBottom: '1px solid var(--border)',
                       backgroundColor: isArchivedLocked ? '#f6f6f6' : 'transparent',
                       opacity: isArchivedLocked ? 0.6 : 1,
@@ -314,6 +340,31 @@ export default function GestionClientsPage() {
                       {cfg.label}
                     </span>
                     <div className="flex items-center gap-2">
+                      {canValidateBusiness && client.status === 'pending_business' && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBusinessDecision(client.id, 'validated');
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+                            title="Valider"
+                          >
+                            <DktIcon name="check-circle" size={18} color="#389E0D" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBusinessDecision(client.id, 'rejected');
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+                            title="Rejeter"
+                          >
+                            <DktIcon name="close-circle" size={18} color="#CF1322" />
+                          </button>
+                        </>
+                      )}
+
                       <button
                         disabled={isArchivedLocked}
                         onClick={(e) => {
@@ -327,6 +378,7 @@ export default function GestionClientsPage() {
                           padding: '4px',
                           opacity: isArchivedLocked ? 0.5 : 1,
                         }}
+                        title="Consulter"
                       >
                         <DktIcon name="eye" size={18} color="var(--muted-foreground)" />
                       </button>
@@ -338,7 +390,6 @@ export default function GestionClientsPage() {
           )}
         </div>
 
-        {/* Pagination */}
         {filtered.length > 0 && (
           <div className="flex items-center justify-end gap-1 mt-6">
             <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} className="w-8 h-8 flex items-center justify-center rounded-full" style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}>
@@ -371,4 +422,3 @@ export default function GestionClientsPage() {
     </div>
   );
 }
-

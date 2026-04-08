@@ -1,8 +1,10 @@
 ﻿import { useState, useMemo, useCallback } from 'react';
+import { App } from 'antd';
 import { useNavigate } from 'react-router';
 import DktIcon from './DktIcon';
 import CountryFlag from './CountryFlag';
 import { getCountryDisplayPartsFromName } from './countryUtils';
+import { useRoleAccess } from './RoleAccess';
 
 type TierStatus = 'pending_business' | 'pending_tresorerie' | 'validated' | 'rejected' | 'sap_rejected' | 'archived';
 type SearchMode = 'name' | 'id';
@@ -49,8 +51,6 @@ const searchModes: { id: SearchMode; label: string }[] = [
   { id: 'id', label: 'Recherche par ID' },
 ];
 
-const isAuditor = false;
-
 type ImportError =
   | null
   | { type: 'not_found'; message: string }
@@ -67,7 +67,10 @@ const searchById = (tiers: Tier[], query: string) => {
 };
 
 export default function GestionTiersPage() {
+  const { message } = App.useApp();
+  const { permissions } = useRoleAccess();
   const navigate = useNavigate();
+  const [tiers, setTiers] = useState<Tier[]>(mockTiers);
   const [searchMode, setSearchMode] = useState<SearchMode>('name');
   const [searchInput, setSearchInput] = useState('');
   const [committedIdQuery, setCommittedIdQuery] = useState('');
@@ -78,20 +81,31 @@ export default function GestionTiersPage() {
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState<ImportError>(null);
 
+  const canCreateTier = permissions.canCreateTiers || permissions.isAdmin;
+  const canValidateBusiness = permissions.canValidateBusinessTiers || permissions.isAdmin;
+  const canValidateTreasury = permissions.canValidateTreasuryTiers;
+  const canViewArchived = permissions.canViewArchivedTiers;
+  const canOpenArchived = permissions.canOpenArchivedTiers || permissions.isAdmin;
+
   const trimmedInput = searchInput.trim();
   const isNameSearchActive = searchMode === 'name' && trimmedInput.length >= 3;
   const isIdSearchActive = searchMode === 'id' && committedIdQuery.length > 0;
   const isSearchActive = isNameSearchActive || isIdSearchActive;
 
+  const visibleTiers = useMemo(
+    () => (canViewArchived ? tiers : tiers.filter(tier => tier.status !== 'archived')),
+    [tiers, canViewArchived],
+  );
+
   const filtered = useMemo(() => {
     if (searchMode === 'name') {
-      if (!isNameSearchActive) return mockTiers;
-      return searchByName(mockTiers, trimmedInput);
+      if (!isNameSearchActive) return visibleTiers;
+      return searchByName(visibleTiers, trimmedInput);
     }
 
-    if (!isIdSearchActive) return mockTiers;
-    return searchById(mockTiers, committedIdQuery);
-  }, [searchMode, isNameSearchActive, isIdSearchActive, trimmedInput, committedIdQuery]);
+    if (!isIdSearchActive) return visibleTiers;
+    return searchById(visibleTiers, committedIdQuery);
+  }, [searchMode, isNameSearchActive, isIdSearchActive, trimmedInput, committedIdQuery, visibleTiers]);
 
   const handleModeChange = (mode: SearchMode) => {
     if (mode === searchMode) return;
@@ -120,17 +134,52 @@ export default function GestionTiersPage() {
   };
 
   const handleOpenTier = (tier: Tier) => {
-    const isArchivedLocked = tier.status === 'archived' && !isAuditor;
+    const isArchivedLocked = tier.status === 'archived' && !canOpenArchived;
     if (isArchivedLocked) return;
     navigate(`/tiers/new?tierId=${tier.id}&mode=view`);
   };
 
+  const handleEditTier = (tier: Tier) => {
+    if (!canCreateTier) return;
+    const isArchivedLocked = tier.status === 'archived' && !canOpenArchived;
+    if (isArchivedLocked) return;
+    navigate(`/tiers/new?tierId=${tier.id}`);
+  };
+
+  const handleBusinessDecision = (tierId: string, status: TierStatus) => {
+    setTiers(previous => previous.map(tier => (
+      tier.id === tierId ? { ...tier, status } : tier
+    )));
+
+    message.success(
+      status === 'validated'
+        ? `Tiers ${tierId} validé (mock).`
+        : `Tiers ${tierId} rejeté (mock).`,
+    );
+  };
+
+  const handleTreasuryDecision = (tierId: string, status: TierStatus) => {
+    setTiers(previous => previous.map(tier => (
+      tier.id === tierId ? { ...tier, status } : tier
+    )));
+
+    message.success(
+      status === 'validated'
+        ? `BANK_WALLET ${tierId} approuvé (mock).`
+        : `BANK_WALLET ${tierId} rejeté (mock).`,
+    );
+  };
+
   const openImportModal = useCallback(() => {
+    if (!canCreateTier) {
+      message.warning('Ce rôle ne peut pas créer de tiers.');
+      return;
+    }
     setImportNumber('');
     setImportError(null);
     setImportLoading(false);
     setImportModalOpen(true);
-  }, []);
+  }, [canCreateTier, message]);
 
   const closeImportModal = useCallback(() => {
     setImportModalOpen(false);
@@ -140,6 +189,7 @@ export default function GestionTiersPage() {
   }, []);
 
   const handleImportConfirm = useCallback(() => {
+    if (!canCreateTier) return;
     const trimmed = importNumber.trim();
 
     if (!trimmed) {
@@ -175,7 +225,7 @@ export default function GestionTiersPage() {
       closeImportModal();
       navigate(`/tiers/new?tierId=${trimmed}`);
     }, 600);
-  }, [importNumber, closeImportModal, navigate]);
+  }, [importNumber, closeImportModal, navigate, canCreateTier]);
 
   const getErrorIcon = (error: ImportError) => {
     if (!error) return null;
@@ -223,23 +273,25 @@ export default function GestionTiersPage() {
             </p>
           </div>
 
-          <button
-            onClick={openImportModal}
-            className="flex items-center gap-2 px-6 py-2.5 shrink-0"
-            style={{
-              backgroundColor: 'var(--primary)',
-              color: 'white',
-              border: 'none',
-              borderRadius: 'var(--radius-button)',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-family-text)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--font-weight-medium)',
-            }}
-          >
-            <DktIcon name="download" size={16} color="white" />
-            Importer un tiers
-          </button>
+          {canCreateTier && (
+            <button
+              onClick={openImportModal}
+              className="flex items-center gap-2 px-6 py-2.5 shrink-0"
+              style={{
+                backgroundColor: 'var(--primary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: 'var(--radius-button)',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-family-text)',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 'var(--font-weight-medium)',
+              }}
+            >
+              <DktIcon name="download" size={16} color="white" />
+              Importer un tiers
+            </button>
+          )}
         </div>
 
         <div
@@ -360,7 +412,7 @@ export default function GestionTiersPage() {
                 </p>
               </div>
             )}
-            {filtered.some(tier => tier.status === 'archived') && !isAuditor && (
+            {!canViewArchived && tiers.some(tier => tier.status === 'archived') && (
               <p
                 className="m-0 mt-1"
                 style={{
@@ -370,7 +422,7 @@ export default function GestionTiersPage() {
                   color: 'var(--muted-foreground)',
                 }}
               >
-                Les tiers archivés sont visibles mais verrouillés.
+                Les tiers archivés sont masqués pour ce rôle.
               </p>
             )}
           </div>
@@ -427,7 +479,7 @@ export default function GestionTiersPage() {
             <>
               <div
                 className="grid px-6 py-3"
-                style={{ gridTemplateColumns: '80px 1fr 1fr 1fr 100px 180px 80px', borderBottom: '1px solid var(--border)' }}
+                style={{ gridTemplateColumns: '80px 1fr 1fr 1fr 100px 180px 220px', borderBottom: '1px solid var(--border)' }}
               >
                 {['ID', 'Nom du tiers', 'Date de création ↓', 'Date de mise à jour ↓', 'Pays', 'État', 'Actions'].map(h => (
                   <span
@@ -441,14 +493,14 @@ export default function GestionTiersPage() {
 
               {filtered.map((tier, i) => {
                 const cfg = statusConfig[tier.status];
-                const isArchivedLocked = tier.status === 'archived' && !isAuditor;
+                const isArchivedLocked = tier.status === 'archived' && !canOpenArchived;
                 return (
                   <div
                     key={`${tier.id}-${i}`}
                     onClick={() => handleOpenTier(tier)}
                     className="grid px-6 py-3 items-center"
                     style={{
-                      gridTemplateColumns: '80px 1fr 1fr 1fr 100px 180px 80px',
+                      gridTemplateColumns: '80px 1fr 1fr 1fr 100px 180px 220px',
                       borderBottom: '1px solid var(--border)',
                       backgroundColor: isArchivedLocked ? '#f6f6f6' : 'transparent',
                       opacity: isArchivedLocked ? 0.6 : 1,
@@ -496,6 +548,56 @@ export default function GestionTiersPage() {
                       {cfg.label}
                     </span>
                     <div className="flex items-center gap-2">
+                      {canValidateBusiness && tier.status === 'pending_business' && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBusinessDecision(tier.id, 'validated');
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+                            title="Valider le bloc business"
+                          >
+                            <DktIcon name="check-circle" size={18} color="#389E0D" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBusinessDecision(tier.id, 'rejected');
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+                            title="Rejeter le bloc business"
+                          >
+                            <DktIcon name="close-circle" size={18} color="#CF1322" />
+                          </button>
+                        </>
+                      )}
+
+                      {canValidateTreasury && tier.status === 'pending_tresorerie' && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTreasuryDecision(tier.id, 'validated');
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+                            title="Approuver BANK_WALLET"
+                          >
+                            <DktIcon name="bank" size={18} color="#389E0D" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTreasuryDecision(tier.id, 'rejected');
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+                            title="Rejeter BANK_WALLET"
+                          >
+                            <DktIcon name="close-circle" size={18} color="#CF1322" />
+                          </button>
+                        </>
+                      )}
+
                       <button
                         disabled={isArchivedLocked}
                         onClick={(e) => {
@@ -509,25 +611,30 @@ export default function GestionTiersPage() {
                           padding: '4px',
                           opacity: isArchivedLocked ? 0.5 : 1,
                         }}
+                        title="Consulter"
                       >
                         <DktIcon name="eye" size={18} color="var(--muted-foreground)" />
                       </button>
-                      <button
-                        disabled={isArchivedLocked}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenTier(tier);
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: isArchivedLocked ? 'not-allowed' : 'pointer',
-                          padding: '4px',
-                          opacity: isArchivedLocked ? 0.5 : 1,
-                        }}
-                      >
-                        <DktIcon name="edit" size={18} color="var(--primary)" />
-                      </button>
+
+                      {canCreateTier && (
+                        <button
+                          disabled={isArchivedLocked}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditTier(tier);
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: isArchivedLocked ? 'not-allowed' : 'pointer',
+                            padding: '4px',
+                            opacity: isArchivedLocked ? 0.5 : 1,
+                          }}
+                          title="Modifier"
+                        >
+                          <DktIcon name="edit" size={18} color="var(--primary)" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

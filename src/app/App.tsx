@@ -1,6 +1,7 @@
 import { RouterProvider } from 'react-router';
 import { router } from './routes';
 import { ConfigProvider, App as AntApp } from 'antd';
+import { RoleAccessProvider } from './components/RoleAccess';
 
 const antdTheme = {
   token: {
@@ -21,7 +22,9 @@ export default function App() {
   return (
     <ConfigProvider theme={antdTheme}>
       <AntApp>
-        <RouterProvider router={router} />
+        <RoleAccessProvider>
+          <RouterProvider router={router} />
+        </RoleAccessProvider>
       </AntApp>
     </ConfigProvider>
   );

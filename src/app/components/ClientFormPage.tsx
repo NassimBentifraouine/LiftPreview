@@ -1,15 +1,17 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router';
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { App } from 'antd';
+import { useNavigate, useSearchParams } from 'react-router';
 import ClientForm from './ClientForm';
 import ProgressSidebar from './ProgressSidebar';
 import DktIcon from './DktIcon';
 import type { FormSection } from './types';
+import { useRoleAccess } from './RoleAccess';
 export type { FormSection };
 
 const formSections: FormSection[] = [
   {
     id: 'identite',
-    title: 'Identité Légale & Commerciale',
+    title: 'Identité légale & commerciale',
     shortTitle: 'Identité',
     description: 'Informations légales et commerciales du client',
     icon: <DktIcon name="user" size={18} color="currentColor" />,
@@ -22,7 +24,7 @@ const formSections: FormSection[] = [
   },
   {
     id: 'finance',
-    title: 'Paramètres Financiers & Comptables',
+    title: 'Paramètres financiers & comptables',
     shortTitle: 'Finance',
     description: 'Configuration financière et comptable',
     icon: <DktIcon name="money" size={18} color="currentColor" />,
@@ -33,7 +35,7 @@ const formSections: FormSection[] = [
   },
   {
     id: 'justificatifs',
-    title: 'Justificatifs & Validation',
+    title: 'Justificatifs & validation',
     shortTitle: 'Justificatifs',
     description: 'Documents et commentaires',
     icon: <DktIcon name="clipboard" size={18} color="currentColor" />,
@@ -45,7 +47,11 @@ const formSections: FormSection[] = [
 ];
 
 export default function ClientFormPage() {
+  const { message } = App.useApp();
+  const { permissions } = useRoleAccess();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
   const [activeSection, setActiveSection] = useState<string>('identite');
   const [activeSubsection, setActiveSubsection] = useState<string>('identite-generale');
   const [completedFields, setCompletedFields] = useState<Set<string>>(new Set());
@@ -54,6 +60,11 @@ export default function ClientFormPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const isManualScrollRef = useRef(false);
+
+  const mode = searchParams.get('mode') === 'view' ? 'view' : 'edit';
+  const canEditClient = permissions.canCreateClients || permissions.isAdmin;
+  const readOnly = mode === 'view' || !canEditClient;
+  const canValidateBusiness = permissions.canValidateBusinessClients || permissions.isAdmin;
 
   const handleFieldComplete = (fieldName: string, isComplete: boolean) => {
     setCompletedFields(prev => {
@@ -81,24 +92,29 @@ export default function ClientFormPage() {
   useEffect(() => {
     const container = contentRef.current;
     if (!container) return;
+
     const handleScroll = () => {
       if (isManualScrollRef.current) return;
       const scrollPos = container.scrollTop + 150;
-      for (let i = formSections.length - 1; i >= 0; i--) {
+      for (let i = formSections.length - 1; i >= 0; i -= 1) {
         const el = document.getElementById(formSections[i].id);
         if (el && el.offsetTop <= scrollPos) {
           setActiveSection(formSections[i].id);
           const subs = formSections[i].subsections;
           let foundSub = subs[0]?.id || '';
-          for (let j = subs.length - 1; j >= 0; j--) {
+          for (let j = subs.length - 1; j >= 0; j -= 1) {
             const subEl = document.getElementById(subs[j].id);
-            if (subEl && subEl.offsetTop <= scrollPos) { foundSub = subs[j].id; break; }
+            if (subEl && subEl.offsetTop <= scrollPos) {
+              foundSub = subs[j].id;
+              break;
+            }
           }
           setActiveSubsection(foundSub);
           break;
         }
       }
     };
+
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
@@ -111,7 +127,6 @@ export default function ClientFormPage() {
 
   return (
     <div className="flex" style={{ height: 'calc(100vh - 88px)' }}>
-      {/* ── SIDEBAR ── */}
       <aside
         className="shrink-0 flex flex-col overflow-hidden"
         style={{
@@ -144,7 +159,8 @@ export default function ClientFormPage() {
                   className="flex items-center justify-center w-10 h-10 rounded-lg"
                   style={{
                     backgroundColor: isActive ? 'rgba(255,255,255,0.15)' : 'transparent',
-                    border: 'none', cursor: 'pointer',
+                    border: 'none',
+                    cursor: 'pointer',
                     color: isComplete ? '#52c41a' : isActive ? 'white' : 'rgba(255,255,255,0.5)',
                     position: 'relative',
                   }}
@@ -169,7 +185,7 @@ export default function ClientFormPage() {
                 Fiche Client LIFT
               </h2>
               <p className="m-0 mb-4" style={{ fontFamily: 'var(--font-family-text)', fontSize: '13px', color: 'rgba(255,255,255,0.6)', lineHeight: '1.4' }}>
-                Formulaire de création client
+                Formulaire création / consultation
               </p>
               <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
                 <div className="flex items-center justify-between mb-2">
@@ -196,59 +212,131 @@ export default function ClientFormPage() {
         )}
       </aside>
 
-      {/* ── MAIN CONTENT ── */}
       <main ref={contentRef} className="flex-1 overflow-y-auto" style={{ backgroundColor: '#f6f6f5' }}>
         <div className="max-w-4xl mx-auto px-10 py-8">
-          <ClientForm
-            sections={formSections}
-            completedFields={completedFields}
-            touchedFields={touchedFields}
-            onFieldComplete={handleFieldComplete}
-            onFieldTouch={handleFieldTouch}
-            onAccountReceivableChange={setHasAccountReceivable}
-          />
-          {/* Bottom actions */}
+          {readOnly && (
+            <div
+              className="mb-4 px-4 py-3 rounded-lg"
+              style={{ backgroundColor: 'rgba(54,67,186,0.08)', border: '1px solid rgba(54,67,186,0.15)' }}
+            >
+              <p className="m-0" style={{ fontFamily: 'var(--font-family-text)', fontSize: '13px', color: 'var(--foreground)' }}>
+                Cette fiche est en lecture seule pour le rôle {permissions.ldap}.
+              </p>
+            </div>
+          )}
+
+          <div style={{ pointerEvents: readOnly ? 'none' : 'auto' }}>
+            <ClientForm
+              sections={formSections}
+              completedFields={completedFields}
+              touchedFields={touchedFields}
+              onFieldComplete={handleFieldComplete}
+              onFieldTouch={handleFieldTouch}
+              onAccountReceivableChange={setHasAccountReceivable}
+            />
+          </div>
+
           <div
             className="flex items-center justify-between pt-5 pb-6 mt-10 sticky bottom-0"
             style={{ backgroundColor: '#f6f6f5', borderTop: '1px solid var(--border)' }}
           >
-            {hasAccountReceivable && (
+            {hasAccountReceivable ? (
               <button
                 className="flex items-center gap-2 px-5 py-2.5"
                 style={{
-                  backgroundColor: 'transparent', border: '1.5px solid var(--primary)',
-                  borderRadius: 'var(--radius-button)', cursor: 'pointer',
-                  fontFamily: 'var(--font-family-text)', fontSize: 'var(--text-sm)',
-                  fontWeight: 'var(--font-weight-semibold)', color: 'var(--primary)',
+                  backgroundColor: 'transparent',
+                  border: '1.5px solid var(--primary)',
+                  borderRadius: 'var(--radius-button)',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-family-text)',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 'var(--font-weight-semibold)',
+                  color: 'var(--primary)',
                 }}
               >
-                Aller vers la fiche Client →
+                Aller vers la fiche Client
               </button>
+            ) : (
+              <div />
             )}
+
             <div className="flex items-center gap-3 ml-auto">
-              <button
-                className="px-5 py-2.5"
-                style={{
-                  backgroundColor: 'var(--card)', border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-button)', cursor: 'pointer',
-                  fontFamily: 'var(--font-family-text)', fontSize: 'var(--text-sm)',
-                  fontWeight: 'var(--font-weight-medium)', color: 'var(--foreground)',
-                }}
-              >
-                Enregistrer le brouillon
-              </button>
-              <button
-                className="px-7 py-2.5"
-                style={{
-                  backgroundColor: 'var(--primary)', border: 'none',
-                  borderRadius: 'var(--radius-button)', cursor: 'pointer',
-                  fontFamily: 'var(--font-family-text)', fontSize: 'var(--text-sm)',
-                  fontWeight: 'var(--font-weight-semibold)', color: 'white',
-                  boxShadow: '0 2px 8px rgba(54,67,186,0.3)',
-                }}
-              >
-                Soumettre la fiche
-              </button>
+              {canValidateBusiness && (
+                <>
+                  <button
+                    onClick={() => message.success('Validation Business client effectuée (mock).')}
+                    className="px-5 py-2.5"
+                    style={{
+                      backgroundColor: '#F6FFED',
+                      border: '1px solid #B7EB8F',
+                      borderRadius: 'var(--radius-button)',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-family-text)',
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 'var(--font-weight-medium)',
+                      color: '#389E0D',
+                    }}
+                  >
+                    Valider Business
+                  </button>
+                  <button
+                    onClick={() => message.success('Rejet Business client effectué (mock).')}
+                    className="px-5 py-2.5"
+                    style={{
+                      backgroundColor: '#FFF1F0',
+                      border: '1px solid #FFA39E',
+                      borderRadius: 'var(--radius-button)',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-family-text)',
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 'var(--font-weight-medium)',
+                      color: '#CF1322',
+                    }}
+                  >
+                    Rejeter Business
+                  </button>
+                </>
+              )}
+
+              {canEditClient && (
+                <>
+                  <button
+                    disabled={readOnly}
+                    className="px-5 py-2.5"
+                    style={{
+                      backgroundColor: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-button)',
+                      cursor: readOnly ? 'not-allowed' : 'pointer',
+                      fontFamily: 'var(--font-family-text)',
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 'var(--font-weight-medium)',
+                      color: 'var(--foreground)',
+                      opacity: readOnly ? 0.6 : 1,
+                    }}
+                  >
+                    Enregistrer le brouillon
+                  </button>
+                  <button
+                    disabled={readOnly}
+                    className="px-7 py-2.5"
+                    style={{
+                      backgroundColor: 'var(--primary)',
+                      border: 'none',
+                      borderRadius: 'var(--radius-button)',
+                      cursor: readOnly ? 'not-allowed' : 'pointer',
+                      fontFamily: 'var(--font-family-text)',
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 'var(--font-weight-semibold)',
+                      color: 'white',
+                      boxShadow: '0 2px 8px rgba(54,67,186,0.3)',
+                      opacity: readOnly ? 0.6 : 1,
+                    }}
+                  >
+                    Soumettre la fiche
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

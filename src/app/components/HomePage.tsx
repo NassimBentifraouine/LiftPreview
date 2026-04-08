@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router';
 import DktIcon from './DktIcon';
 import accueilSvg from '../../imports/Accueil/svg-qy6k6ylg0m';
+import { canAccessPath, useRoleAccess } from './RoleAccess';
 
 function ArrowIcon() {
   return (
@@ -35,10 +36,17 @@ const cards = [
     desc: 'Exportez vos données',
     path: '/export',
   },
+  {
+    icon: 'settings',
+    title: 'Administration',
+    desc: 'Paramètres réservés aux administrateurs',
+    path: '/administration',
+  },
 ];
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { permissions } = useRoleAccess();
 
   return (
     <div className="relative overflow-hidden" style={{ backgroundColor: 'rgba(245,244,245,0.7)', minHeight: 'calc(100vh - 180px)' }}>
@@ -80,7 +88,9 @@ export default function HomePage() {
 
             {/* Cards grid */}
             <div className="grid grid-cols-2 gap-5">
-              {cards.map((card) => (
+              {cards
+                .filter(card => canAccessPath(card.path, permissions))
+                .map((card) => (
                 <div
                   key={card.path}
                   className="flex flex-col"

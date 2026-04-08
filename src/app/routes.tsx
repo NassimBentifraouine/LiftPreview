@@ -7,6 +7,7 @@ import ClientFormPage from "./components/ClientFormPage";
 import TierFormPage from "./components/TierFormPage";
 import BrouillonsPage from "./components/BrouillonsPage";
 import ExportPage from "./components/ExportPage";
+import AdministrationPage from "./components/AdministrationPage";
 
 export const router = createBrowserRouter([
   {
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([
       { path: "clients/new", Component: ClientFormPage },
       { path: "brouillons", Component: BrouillonsPage },
       { path: "export", Component: ExportPage },
+      { path: "administration", Component: AdministrationPage },
     ],
   },
 ]);
