@@ -1,33 +1,40 @@
-import { Form, Input, Select, Switch, Checkbox, Button, Upload, App, Alert, Tag, Tooltip, Collapse, Modal, Popconfirm } from 'antd';
+﻿import { Form, Input, Select, Switch, Checkbox, Button, Upload, App, Alert, Tag, Tooltip, Collapse, Modal, Popconfirm } from 'antd';
 import { InboxOutlined, CheckCircleOutlined, InfoCircleOutlined, UserOutlined, SafetyOutlined, HomeOutlined, PhoneOutlined, MailOutlined, DollarOutlined, FileTextOutlined, FolderOpenOutlined, LockOutlined, CheckCircleFilled, BankOutlined, GlobalOutlined, DeleteOutlined } from '@ant-design/icons';
 import { motion } from 'motion/react';
 import type { FormSection } from './types';
 import { useState, useRef, useCallback, type ReactNode } from 'react';
 import DktIcon from './DktIcon';
+import { buildCountryLabel, getCountryFlagFromCode } from './countryUtils';
 
 const { TextArea } = Input;
 const { Dragger } = Upload;
 
-const paysOptions = [
-  { value: 'FR', label: '🇫🇷 France' },
-  { value: 'BE', label: '🇧🇪 Belgique' },
-  { value: 'ES', label: '🇪🇸 Espagne' },
-  { value: 'DE', label: '🇩🇪 Allemagne' },
-  { value: 'IT', label: '🇮🇹 Italie' },
-  { value: 'GB', label: '🇬🇧 Royaume-Uni' },
-  { value: 'NL', label: '🇳🇱 Pays-Bas' },
-  { value: 'PT', label: '🇵🇹 Portugal' },
-  { value: 'PL', label: '🇵🇱 Pologne' },
-  { value: 'CH', label: '🇨🇭 Suisse' },
-  { value: 'LU', label: '🇱🇺 Luxembourg' },
-  { value: 'AT', label: '🇦🇹 Autriche' },
-  { value: 'DK', label: '🇩🇰 Danemark' },
-  { value: 'SE', label: '🇸🇪 Suède' },
-  { value: 'NO', label: '🇳🇴 Norvège' },
-  { value: 'FI', label: '🇫🇮 Finlande' },
-  { value: 'IE', label: '🇮🇪 Irlande' },
-  { value: 'GR', label: '🇬🇷 Grèce' },
+const countryCatalog = [
+  { value: 'FR', name: 'France' },
+  { value: 'BE', name: 'Belgique' },
+  { value: 'ES', name: 'Espagne' },
+  { value: 'DE', name: 'Allemagne' },
+  { value: 'IT', name: 'Italie' },
+  { value: 'GB', name: 'Royaume-Uni' },
+  { value: 'NL', name: 'Pays-Bas' },
+  { value: 'PT', name: 'Portugal' },
+  { value: 'PL', name: 'Pologne' },
+  { value: 'CH', name: 'Suisse' },
+  { value: 'LU', name: 'Luxembourg' },
+  { value: 'AT', name: 'Autriche' },
+  { value: 'DK', name: 'Danemark' },
+  { value: 'SE', name: 'Suede' },
+  { value: 'NO', name: 'Norvege' },
+  { value: 'FI', name: 'Finlande' },
+  { value: 'IE', name: 'Irlande' },
+  { value: 'GR', name: 'Grece' },
 ];
+
+const paysOptions = countryCatalog.map((country) => ({
+  value: country.value,
+  name: country.name,
+  label: buildCountryLabel(country.value, country.name),
+}));
 
 const typeClientOptions = [
   { value: 'b2c', label: 'B2C' },
@@ -45,20 +52,20 @@ const customerGroupOptions = [
 ];
 
 const natureOptions = [
-  { value: 'retail', label: 'Commerce de détail' },
+  { value: 'retail', label: 'Commerce de dÃ©tail' },
   { value: 'wholesale', label: 'Commerce de gros' },
   { value: 'manufacturer', label: 'Fabricant' },
   { value: 'services', label: 'Services' },
 ];
 
 const deviseOptions = [
-  { value: 'EUR', label: '🇪🇺 Euro (EUR)' },
-  { value: 'USD', label: '🇺🇸 Dollar (USD)' },
-  { value: 'GBP', label: '🇬🇧 Livre Sterling (GBP)' },
-  { value: 'CHF', label: '🇨🇭 Franc Suisse (CHF)' },
-  { value: 'NOK', label: '🇳🇴 Couronne Norvégienne (NOK)' },
-  { value: 'SEK', label: '🇸🇪 Couronne Suédoise (SEK)' },
-  { value: 'DKK', label: '🇩🇰 Couronne Danoise (DKK)' },
+  { value: 'EUR', label: 'Euro (EUR)' },
+  { value: 'USD', label: 'Dollar (USD)' },
+  { value: 'GBP', label: 'Livre Sterling (GBP)' },
+  { value: 'CHF', label: 'Franc Suisse (CHF)' },
+  { value: 'NOK', label: 'Couronne Norvegienne (NOK)' },
+  { value: 'SEK', label: 'Couronne Suedoise (SEK)' },
+  { value: 'DKK', label: 'Couronne Danoise (DKK)' },
 ];
 
 const vatRateOptions = [
@@ -70,15 +77,15 @@ const vatRateOptions = [
 
 const statusTVAOptions = [
   { value: 'standard', label: 'Standard' },
-  { value: 'reduced', label: 'Réduit' },
-  { value: 'exempt', label: 'Exonéré' },
+  { value: 'reduced', label: 'RÃ©duit' },
+  { value: 'exempt', label: 'ExonÃ©rÃ©' },
   { value: 'reverse_charge', label: 'Autoliquidation' },
 ];
 
 const modePaiementOptions = [
   { value: 'virement', label: 'Virement bancaire' },
-  { value: 'prelevement', label: 'Prélèvement' },
-  { value: 'cheque', label: 'Chèque' },
+  { value: 'prelevement', label: 'PrÃ©lÃ¨vement' },
+  { value: 'cheque', label: 'ChÃ¨que' },
   { value: 'carte', label: 'Carte bancaire' },
 ];
 
@@ -168,11 +175,11 @@ export default function ClientForm({
   const doneIcon = (fieldName: string) =>
     completedFields.has(fieldName) ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> : undefined;
 
-  // ── Shared styles ──
+  // â”€â”€ Shared styles â”€â”€
   const ls = { fontFamily: 'var(--font-family-text)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-weight-medium)' as const };
   const req = <span style={{ color: 'var(--destructive)', marginLeft: '2px' }}>*</span>;
 
-  // ── Card wrapper ──
+  // â”€â”€ Card wrapper â”€â”€
   const Card = ({ children, title, subtitle, icon, id }: { children: ReactNode; title: string; subtitle?: string; icon: ReactNode; id?: string }) => (
     <div
       id={id}
@@ -206,7 +213,7 @@ export default function ClientForm({
     </div>
   );
 
-  // ── Section header (the big numbered badge) ──
+  // â”€â”€ Section header (the big numbered badge) â”€â”€
   const getSectionStats = (sectionId: string) => {
     const section = sections.find(s => s.id === sectionId);
     if (!section) return { done: 0, total: 0, pct: 0 };
@@ -280,7 +287,7 @@ export default function ClientForm({
         cursor: 'pointer',
         marginTop: '6px',
       }}
-      title={accordionOpen[sectionId] ? 'Réduire' : 'Déplier'}
+      title={accordionOpen[sectionId] ? 'RÃ©duire' : 'DÃ©plier'}
     >
       <DktIcon
         name={accordionOpen[sectionId] ? 'chevron-up' : 'chevron-down'}
@@ -300,7 +307,7 @@ export default function ClientForm({
       initialValues={{ assujettTVA: true, delaiPaiement: '45', accountReceivable: true }}
       onValuesChange={handleFormValuesChange}
     >
-      {/* ══════════ HEADER - ID CLIENT ══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â• HEADER - ID CLIENT â•â•â•â•â•â•â•â•â•â• */}
       <div
         className="mb-8 p-5 rounded-lg flex items-center justify-between"
         style={{ backgroundColor: 'rgba(54,67,186,0.05)', border: '1px solid rgba(54,67,186,0.15)' }}
@@ -317,49 +324,49 @@ export default function ClientForm({
               ID Client LIFT
             </div>
             <div style={{ fontFamily: 'var(--font-family-display)', fontSize: 'var(--text-xl)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--foreground)' }}>
-              {customerId || '—'}
+              {customerId || 'â€”'}
             </div>
           </div>
         </div>
         <Tag color="green" style={{ margin: 0, padding: '6px 14px', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-family-text)', borderRadius: 'var(--radius-button)', border: 'none' }}>
-          Auto-généré
+          Auto-gÃ©nÃ©rÃ©
         </Tag>
       </div>
 
-      {/* ══════════ BLOC 1 : IDENTITÉ LÉGALE & COMMERCIALE ══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â• BLOC 1 : IDENTITÃ‰ LÃ‰GALE & COMMERCIALE â•â•â•â•â•â•â•â•â•â• */}
       <section id="identite" className="form-section mb-14">
         <div className="flex items-start gap-3">
           <div className="flex-1">
-            <SectionBanner index={1} title="Identité Légale & Commerciale" description="Informations légales et commerciales du client" sectionId="identite" />
+            <SectionBanner index={1} title="IdentitÃ© LÃ©gale & Commerciale" description="Informations lÃ©gales et commerciales du client" sectionId="identite" />
           </div>
           <SectionAccordionToggle sectionId="identite" />
         </div>
 
         {accordionOpen.identite && (
           <>
-        <Card id="identite-generale" title="Identité Générale" subtitle="Raison sociale et classification" icon={<UserOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
+        <Card id="identite-generale" title="IdentitÃ© GÃ©nÃ©rale" subtitle="Raison sociale et classification" icon={<UserOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
           <div className="space-y-6">
             <Form.Item label={<span style={ls}>Raison Sociale {req}</span>} name="raisonSociale" rules={[{ required: true, message: 'Champ requis' }]} className={fc('raisonSociale')}>
               <Input placeholder="Ex: DECATHLON FRANCE SAS" size="large" suffix={doneIcon('raisonSociale')} />
             </Form.Item>
             <div className="grid grid-cols-2 gap-6">
               <Form.Item label={<span style={ls}>Pays d'immatriculation {req}</span>} name="paysImmatriculation" rules={[{ required: true, message: 'Champ requis' }]} className={fc('paysImmatriculation')}>
-                <Select placeholder="Sélectionnez un pays" size="large" showSearch options={paysOptions} />
+                <Select placeholder="SÃ©lectionnez un pays" size="large" showSearch options={paysOptions} />
               </Form.Item>
               <Form.Item label={<span style={ls}>Customer Group {req}</span>} name="customerGroup" rules={[{ required: true, message: 'Champ requis' }]} className={fc('customerGroup')}>
-                <Select placeholder="Sélectionnez" size="large" options={customerGroupOptions} />
+                <Select placeholder="SÃ©lectionnez" size="large" options={customerGroupOptions} />
               </Form.Item>
             </div>
             <div className="grid grid-cols-2 gap-6">
               <Form.Item label={<span style={ls}>Type de Client {req}</span>} name="typeClient" rules={[{ required: true, message: 'Champ requis' }]} className={fc('typeClient')}>
-                <Select placeholder="Sélectionnez" size="large" options={typeClientOptions} />
+                <Select placeholder="SÃ©lectionnez" size="large" options={typeClientOptions} />
               </Form.Item>
-              <Form.Item label={<span style={ls}>Nature (Activité) {req}</span>} name="nature" rules={[{ required: true, message: 'Champ requis' }]} className={fc('nature')}>
-                <Select placeholder="Sélectionnez" size="large" options={natureOptions} />
+              <Form.Item label={<span style={ls}>Nature (ActivitÃ©) {req}</span>} name="nature" rules={[{ required: true, message: 'Champ requis' }]} className={fc('nature')}>
+                <Select placeholder="SÃ©lectionnez" size="large" options={natureOptions} />
               </Form.Item>
             </div>
             <div className="grid grid-cols-2 gap-6">
-              <Form.Item label={<span style={ls}>Téléphone principal {req}</span>} name="telephone" rules={[{ required: true, message: 'Champ requis' }]} className={fc('telephone')}>
+              <Form.Item label={<span style={ls}>TÃ©lÃ©phone principal {req}</span>} name="telephone" rules={[{ required: true, message: 'Champ requis' }]} className={fc('telephone')}>
                 <Input placeholder="+33 6 12 34 56 78" size="large" prefix={<PhoneOutlined style={{ color: 'var(--muted-foreground)' }} />} suffix={doneIcon('telephone')} />
               </Form.Item>
               <Form.Item label={<span style={ls}>Email client {req}</span>} name="email" normalize={(value) => value?.toLowerCase()} rules={[{ required: true, message: 'Champ requis' }, { type: 'email', message: 'Email invalide' }]} className={fc('email')}>
@@ -369,11 +376,11 @@ export default function ClientForm({
           </div>
         </Card>
 
-        <Card id="identifiants-fiscaux" title="Identifiants Fiscaux" subtitle="Numéros fiscaux et légaux" icon={<SafetyOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
+        <Card id="identifiants-fiscaux" title="Identifiants Fiscaux" subtitle="NumÃ©ros fiscaux et lÃ©gaux" icon={<SafetyOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <label className="block mb-3" style={{ ...ls, color: 'var(--foreground)' }}>Assujetti à la TVA {req}</label>
+                <label className="block mb-3" style={{ ...ls, color: 'var(--foreground)' }}>Assujetti Ã  la TVA {req}</label>
                 <Form.Item name="assujettTVA" valuePropName="checked" className={fc('assujettTVA')} style={{ marginBottom: 0 }}>
                   <Switch checkedChildren="Oui" unCheckedChildren="Non" />
                 </Form.Item>
@@ -386,14 +393,14 @@ export default function ClientForm({
               {({ getFieldValue }) =>
                 getFieldValue('assujettTVA') ? (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                    <Form.Item label={<span style={ls}>Numéro de TVA intracommunautaire {req}</span>} name="numeroTVA" normalize={(value) => value?.toUpperCase()} rules={[{ required: true, message: 'Champ requis' }]} className={fc('numeroTVA')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)' }}>Contrôle API VIES pour les pays de l'UE</span>}>
+                    <Form.Item label={<span style={ls}>NumÃ©ro de TVA intracommunautaire {req}</span>} name="numeroTVA" normalize={(value) => value?.toUpperCase()} rules={[{ required: true, message: 'Champ requis' }]} className={fc('numeroTVA')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)' }}>ContrÃ´le API VIES pour les pays de l'UE</span>}>
                       <Input placeholder="Ex: FR12345678901" size="large" suffix={doneIcon('numeroTVA')} />
                     </Form.Item>
                   </motion.div>
                 ) : (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                    <Form.Item label={<span style={ls}>N° d'inscription au journal officiel {req}</span>} name="numeroInscription" rules={[{ required: true, message: 'Champ requis' }]} className={fc('numeroInscription')}>
-                      <Input placeholder="Numéro d'inscription" size="large" suffix={doneIcon('numeroInscription')} />
+                    <Form.Item label={<span style={ls}>NÂ° d'inscription au journal officiel {req}</span>} name="numeroInscription" rules={[{ required: true, message: 'Champ requis' }]} className={fc('numeroInscription')}>
+                      <Input placeholder="NumÃ©ro d'inscription" size="large" suffix={doneIcon('numeroInscription')} />
                     </Form.Item>
                   </motion.div>
                 )
@@ -402,14 +409,14 @@ export default function ClientForm({
           </div>
         </Card>
 
-        <Card id="adresse-principale" title="Adresse Principale" subtitle="Adresse du siège social" icon={<HomeOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
+        <Card id="adresse-principale" title="Adresse Principale" subtitle="Adresse du siÃ¨ge social" icon={<HomeOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
           <div className="space-y-6">
             <div className="grid grid-cols-4 gap-4">
-              <Form.Item label={<span style={ls}>N° Rue {req}</span>} name="adresseNumero" rules={[{ required: true, message: 'Requis' }]} className={fc('adresseNumero')}>
+              <Form.Item label={<span style={ls}>NÂ° Rue {req}</span>} name="adresseNumero" rules={[{ required: true, message: 'Requis' }]} className={fc('adresseNumero')}>
                 <Input placeholder="123" size="large" suffix={doneIcon('adresseNumero')} />
               </Form.Item>
               <Form.Item label={<span style={ls}>Voie {req}</span>} name="adresseVoie" rules={[{ required: true, message: 'Requis' }]} className={`${fc('adresseVoie')} col-span-3`}>
-                <Input placeholder="Rue de la République" size="large" suffix={doneIcon('adresseVoie')} />
+                <Input placeholder="Rue de la RÃ©publique" size="large" suffix={doneIcon('adresseVoie')} />
               </Form.Item>
             </div>
             <div className="grid grid-cols-2 gap-6">
@@ -423,23 +430,23 @@ export default function ClientForm({
             
             {/* OK/KO ICO */}
             <Alert
-              title={<span style={ls}>Vérification ICO (Intra-Community Operator)</span>}
+              title={<span style={ls}>VÃ©rification ICO (Intra-Community Operator)</span>}
               description={
                 <div className="flex items-center gap-3 mt-2">
                   <Form.Item name="icoStatus" style={{ marginBottom: 0 }}>
                     <Select
-                      placeholder="Statut de vérification"
+                      placeholder="Statut de vÃ©rification"
                       size="large"
                       style={{ width: '200px' }}
                       options={[
-                        { value: 'ok', label: '✓ OK - Vérifié' },
-                        { value: 'ko', label: '✗ KO - Non vérifié' },
-                        { value: 'pending', label: '⏳ En attente' },
+                        { value: 'ok', label: 'âœ“ OK - VÃ©rifiÃ©' },
+                        { value: 'ko', label: 'âœ— KO - Non vÃ©rifiÃ©' },
+                        { value: 'pending', label: 'â³ En attente' },
                       ]}
                     />
                   </Form.Item>
                   <span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '13px' }}>
-                    Statut de vérification ICO auprès des autorités
+                    Statut de vÃ©rification ICO auprÃ¨s des autoritÃ©s
                   </span>
                 </div>
               }
@@ -452,12 +459,12 @@ export default function ClientForm({
 
         <Card id="adresse-livraison" title="Adresse de Livraison" subtitle="Lieu de livraison des marchandises" icon={<GlobalOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
           <div className="space-y-6">
-            <Form.Item label={<span style={ls}>Identifiant de livraison</span>} name="identifiantLivraison" className={fc('identifiantLivraison')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)' }}>N° TVA du lieu de livraison (si différent)</span>}>
-              <Input placeholder="N° TVA du lieu de livraison" size="large" suffix={doneIcon('identifiantLivraison')} />
+            <Form.Item label={<span style={ls}>Identifiant de livraison</span>} name="identifiantLivraison" className={fc('identifiantLivraison')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)' }}>NÂ° TVA du lieu de livraison (si diffÃ©rent)</span>}>
+              <Input placeholder="NÂ° TVA du lieu de livraison" size="large" suffix={doneIcon('identifiantLivraison')} />
             </Form.Item>
             <Form.Item name="adresseLivraisonDifferente" valuePropName="checked" className={fc('adresseLivraisonDifferente')}>
               <Checkbox>
-                <span style={ls}>L'adresse de livraison est différente de l'adresse principale</span>
+                <span style={ls}>L'adresse de livraison est diffÃ©rente de l'adresse principale</span>
               </Checkbox>
             </Form.Item>
             <Form.Item noStyle shouldUpdate={(prev, cur) => prev.adresseLivraisonDifferente !== cur.adresseLivraisonDifferente}>
@@ -465,7 +472,7 @@ export default function ClientForm({
                 getFieldValue('adresseLivraisonDifferente') ? (
                   <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="p-5 rounded-lg" style={{ backgroundColor: 'rgba(255,205,78,0.05)', border: '1px dashed var(--accent)' }}>
                     <div className="grid grid-cols-4 gap-4 mb-6">
-                      <Form.Item label={<span style={ls}>N° Rue {req}</span>} name="livraisonNumero" rules={[{ required: true, message: 'Requis' }]} className={fc('livraisonNumero')}>
+                      <Form.Item label={<span style={ls}>NÂ° Rue {req}</span>} name="livraisonNumero" rules={[{ required: true, message: 'Requis' }]} className={fc('livraisonNumero')}>
                         <Input placeholder="123" size="large" suffix={doneIcon('livraisonNumero')} />
                       </Form.Item>
                       <Form.Item label={<span style={ls}>Voie {req}</span>} name="livraisonVoie" rules={[{ required: true, message: 'Requis' }]} className={`${fc('livraisonVoie')} col-span-3`}>
@@ -490,42 +497,42 @@ export default function ClientForm({
         )}
       </section>
 
-      {/* ══════════ BLOC 2 : PARAMÈTRES FINANCIERS & COMPTABLES ══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â• BLOC 2 : PARAMÃˆTRES FINANCIERS & COMPTABLES â•â•â•â•â•â•â•â•â•â• */}
       <section id="finance" className="form-section mb-14">
         <div className="flex items-start gap-3">
           <div className="flex-1">
-            <SectionBanner index={2} title="Paramètres Financiers & Comptables" description="Configuration financière et comptable" sectionId="finance" />
+            <SectionBanner index={2} title="ParamÃ¨tres Financiers & Comptables" description="Configuration financiÃ¨re et comptable" sectionId="finance" />
           </div>
           <SectionAccordionToggle sectionId="finance" />
         </div>
 
         {accordionOpen.finance && (
           <>
-        <Card id="entite-facturante" title="Entité Facturante" subtitle="Informations de facturation" icon={<BankOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
+        <Card id="entite-facturante" title="EntitÃ© Facturante" subtitle="Informations de facturation" icon={<BankOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <Form.Item label={<span style={ls}>Pays Facturant {req}</span>} name="paysFacturant" rules={[{ required: true, message: 'Champ requis' }]} className={fc('paysFacturant')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Remplace la notion E-one Environment</span>}>
-                <Select placeholder="Sélectionnez le pays" size="large" showSearch options={paysOptions} />
+                <Select placeholder="SÃ©lectionnez le pays" size="large" showSearch options={paysOptions} />
               </Form.Item>
-              <Form.Item label={<span style={ls}>Ship From (Tax ID Pays Client)</span>} name="shipFrom" normalize={(value) => value?.toUpperCase()} className={fc('shipFrom')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Identifiant fiscal du pays d'expédition</span>}>
+              <Form.Item label={<span style={ls}>Ship From (Tax ID Pays Client)</span>} name="shipFrom" normalize={(value) => value?.toUpperCase()} className={fc('shipFrom')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Identifiant fiscal du pays d'expÃ©dition</span>}>
                 <Input placeholder="Tax ID pays du client" size="large" suffix={doneIcon('shipFrom')} />
               </Form.Item>
             </div>
             
-            <Form.Item label={<span style={ls}>Nom de l'entité facturante {req}</span>} name="nomEntiteFacturante" rules={[{ required: true, message: 'Champ requis' }]} className={fc('nomEntiteFacturante')}>
-              <Input placeholder="Nom de l'entité" size="large" suffix={doneIcon('nomEntiteFacturante')} />
+            <Form.Item label={<span style={ls}>Nom de l'entitÃ© facturante {req}</span>} name="nomEntiteFacturante" rules={[{ required: true, message: 'Champ requis' }]} className={fc('nomEntiteFacturante')}>
+              <Input placeholder="Nom de l'entitÃ©" size="large" suffix={doneIcon('nomEntiteFacturante')} />
             </Form.Item>
             
             <Alert
-              title={<span style={ls}>Adresse structurée de l'entité facturante</span>}
-              description={<span style={{ ...ls, fontWeight: 'var(--font-weight-normal)' as const }}>Saisissez l'adresse complète avec des champs séparés (finies les Address Line 1, 2, 3)</span>}
+              title={<span style={ls}>Adresse structurÃ©e de l'entitÃ© facturante</span>}
+              description={<span style={{ ...ls, fontWeight: 'var(--font-weight-normal)' as const }}>Saisissez l'adresse complÃ¨te avec des champs sÃ©parÃ©s (finies les Address Line 1, 2, 3)</span>}
               type="info"
               showIcon
               style={{ backgroundColor: 'rgba(24,144,255,0.05)', border: '1px solid rgba(24,144,255,0.12)', borderRadius: 'var(--radius)' }}
             />
 
             <div className="grid grid-cols-4 gap-4">
-              <Form.Item label={<span style={ls}>N° {req}</span>} name="facturantNumero" rules={[{ required: true, message: 'Requis' }]} className={fc('facturantNumero')}>
+              <Form.Item label={<span style={ls}>NÂ° {req}</span>} name="facturantNumero" rules={[{ required: true, message: 'Requis' }]} className={fc('facturantNumero')}>
                 <Input placeholder="123" size="large" suffix={doneIcon('facturantNumero')} />
               </Form.Item>
               <Form.Item label={<span style={ls}>Voie {req}</span>} name="facturantVoie" rules={[{ required: true, message: 'Requis' }]} className={`${fc('facturantVoie')} col-span-3`}>
@@ -541,17 +548,17 @@ export default function ClientForm({
               </Form.Item>
             </div>
             <div className="grid grid-cols-2 gap-6">
-              <Form.Item label={<span style={ls}>Téléphone local</span>} name="telephoneLocal" className={fc('telephoneLocal')}>
+              <Form.Item label={<span style={ls}>TÃ©lÃ©phone local</span>} name="telephoneLocal" className={fc('telephoneLocal')}>
                 <Input placeholder="+33 6 12 34 56 78" size="large" prefix={<PhoneOutlined style={{ color: 'var(--muted-foreground)' }} />} suffix={doneIcon('telephoneLocal')} />
               </Form.Item>
-              <Form.Item label={<span style={ls}>Email facturation/compta {req}</span>} name="emailFacturation" normalize={(value) => value?.toLowerCase()} rules={[{ required: true, message: 'Champ requis' }, { type: 'email', message: 'Email invalide' }]} className={fc('emailFacturation')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Obligatoire pour la facturation électronique</span>}>
+              <Form.Item label={<span style={ls}>Email facturation/compta {req}</span>} name="emailFacturation" normalize={(value) => value?.toLowerCase()} rules={[{ required: true, message: 'Champ requis' }, { type: 'email', message: 'Email invalide' }]} className={fc('emailFacturation')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Obligatoire pour la facturation Ã©lectronique</span>}>
                 <Input placeholder="facturation@entreprise.fr" size="large" type="email" prefix={<MailOutlined style={{ color: 'var(--muted-foreground)' }} />} suffix={doneIcon('emailFacturation')} />
               </Form.Item>
             </div>
           </div>
         </Card>
 
-        <Card id="parametres-comptables" title="Paramètres Comptables" subtitle="Configuration comptable et de paiement" icon={<DollarOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
+        <Card id="parametres-comptables" title="ParamÃ¨tres Comptables" subtitle="Configuration comptable et de paiement" icon={<DollarOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
           <div className="space-y-6">
             <Form.Item name="accountReceivable" valuePropName="checked" className={fc('accountReceivable')}>
               <Checkbox onChange={(e) => { handleFieldChange('accountReceivable', e.target.checked); onAccountReceivableChange(e.target.checked); }}>
@@ -565,33 +572,33 @@ export default function ClientForm({
             </Form.Item>
 
             <div className="grid grid-cols-2 gap-6">
-              <Form.Item label={<span style={ls}>Devise {req}</span>} name="devise" rules={[{ required: true, message: 'Champ requis' }]} className={fc('devise')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Possibilité d'en avoir plusieurs pour 1 environnement</span>}>
-                <Select placeholder="Sélectionnez" size="large" options={deviseOptions} />
+              <Form.Item label={<span style={ls}>Devise {req}</span>} name="devise" rules={[{ required: true, message: 'Champ requis' }]} className={fc('devise')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>PossibilitÃ© d'en avoir plusieurs pour 1 environnement</span>}>
+                <Select placeholder="SÃ©lectionnez" size="large" options={deviseOptions} />
               </Form.Item>
               <Form.Item label={<span style={ls}>Taux de TVA {req}</span>} name="tauxTVA" rules={[{ required: true, message: 'Champ requis' }]} className={fc('tauxTVA')}>
-                <Select placeholder="Sélectionnez" size="large" options={vatRateOptions} />
+                <Select placeholder="SÃ©lectionnez" size="large" options={vatRateOptions} />
               </Form.Item>
             </div>
             <div className="grid grid-cols-2 gap-6">
               <Form.Item label={<span style={ls}>Status de TVA {req}</span>} name="statusTVA" rules={[{ required: true, message: 'Champ requis' }]} className={fc('statusTVA')}>
-                <Select placeholder="Sélectionnez" size="large" options={statusTVAOptions} />
+                <Select placeholder="SÃ©lectionnez" size="large" options={statusTVAOptions} />
               </Form.Item>
               <Form.Item label={<span style={ls}>Mode de Paiement du client {req}</span>} name="modePaiement" rules={[{ required: true, message: 'Champ requis' }]} className={fc('modePaiement')}>
-                <Select placeholder="Sélectionnez" size="large" options={modePaiementOptions} />
+                <Select placeholder="SÃ©lectionnez" size="large" options={modePaiementOptions} />
               </Form.Item>
             </div>
             <div className="grid grid-cols-2 gap-6">
-              <Form.Item label={<span style={ls}>Délai de paiement du client {req}</span>} name="delaiPaiement" rules={[{ required: true, message: 'Champ requis' }]} className={fc('delaiPaiement')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>45 jours par défaut, modifiable</span>}>
-                <Select placeholder="Sélectionnez" size="large" options={delaiPaiementOptions} />
+              <Form.Item label={<span style={ls}>DÃ©lai de paiement du client {req}</span>} name="delaiPaiement" rules={[{ required: true, message: 'Champ requis' }]} className={fc('delaiPaiement')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>45 jours par dÃ©faut, modifiable</span>}>
+                <Select placeholder="SÃ©lectionnez" size="large" options={delaiPaiementOptions} />
               </Form.Item>
-              <Form.Item label={<span style={ls}>Clé comptable (GL Key)</span>} name="glKey" className={fc('glKey')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Optionnel, à valider par le métier</span>}>
-                <Input placeholder="Clé comptable" size="large" suffix={doneIcon('glKey')} />
+              <Form.Item label={<span style={ls}>ClÃ© comptable (GL Key)</span>} name="glKey" className={fc('glKey')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Optionnel, Ã  valider par le mÃ©tier</span>}>
+                <Input placeholder="ClÃ© comptable" size="large" suffix={doneIcon('glKey')} />
               </Form.Item>
             </div>
           </div>
         </Card>
 
-        {/* Carte d'ajout de pays d'opération */}
+        {/* Carte d'ajout de pays d'opÃ©ration */}
         <div
           className="mb-5"
           style={{
@@ -611,10 +618,10 @@ export default function ClientForm({
               </div>
               <div>
                 <h4 className="m-0" style={{ fontFamily: 'var(--font-family-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--foreground)', lineHeight: '1.3' }}>
-                  Pays d'Opération
+                  Pays d'OpÃ©ration
                 </h4>
                 <p className="m-0" style={{ fontFamily: 'var(--font-family-text)', fontSize: '13px', color: 'var(--muted-foreground)', lineHeight: '1.3', marginTop: '1px' }}>
-                  Ajoutez et configurez les pays d'opération
+                  Ajoutez et configurez les pays d'opÃ©ration
                 </p>
               </div>
             </div>
@@ -639,7 +646,7 @@ export default function ClientForm({
               <div className="flex flex-col items-center justify-center py-12" style={{ opacity: 0.5 }}>
                 <GlobalOutlined style={{ fontSize: '48px', color: 'var(--muted-foreground)' }} />
                 <p style={{ ...ls, color: 'var(--muted-foreground)', marginTop: '12px', marginBottom: 0 }}>
-                  Aucun pays configuré
+                  Aucun pays configurÃ©
                 </p>
                 <p style={{ ...ls, fontSize: '13px', color: 'var(--muted-foreground)', marginTop: '4px', marginBottom: 0 }}>
                   Cliquez sur "Ajouter un pays" pour commencer
@@ -659,13 +666,13 @@ export default function ClientForm({
                     label: (
                       <div className="flex items-center justify-between pr-4" style={{ width: '100%' }}>
                         <div className="flex items-center gap-3">
-                          <span style={{ fontSize: '28px' }}>{country.label.split(' ')[0]}</span>
+                          <span style={{ fontSize: '28px' }}>{getCountryFlagFromCode(country.value)}</span>
                           <div>
                             <h5 className="m-0" style={{ fontFamily: 'var(--font-family-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--foreground)' }}>
-                              {country.label.split(' ').slice(1).join(' ')}
+                              {country.name}
                             </h5>
                             <p className="m-0" style={{ ...ls, fontSize: '12px', color: 'var(--muted-foreground)' }}>
-                              Configuration financière locale
+                              Configuration financiÃ¨re locale
                             </p>
                           </div>
                         </div>
@@ -673,8 +680,8 @@ export default function ClientForm({
                           title="Supprimer ce pays ?"
                           description={
                             <div>
-                              <p style={{ ...ls, marginBottom: '4px' }}>Êtes-vous sûr de vouloir supprimer {country.label.split(' ').slice(1).join(' ')} ?</p>
-                              <p style={{ ...ls, fontSize: '13px', color: 'var(--muted-foreground)', marginBottom: 0 }}>Toutes les configurations associées seront perdues.</p>
+                              <p style={{ ...ls, marginBottom: '4px' }}>Etes-vous sur de vouloir supprimer {country.name} ?</p>
+                              <p style={{ ...ls, fontSize: '13px', color: 'var(--muted-foreground)', marginBottom: 0 }}>Toutes les configurations associÃ©es seront perdues.</p>
                             </div>
                           }
                           onConfirm={(e) => {
@@ -700,28 +707,28 @@ export default function ClientForm({
                       <div className="space-y-4 pt-2">
                         <div className="grid grid-cols-2 gap-4">
                           <Form.Item label={<span style={ls}>Devise locale</span>} name={`${countryCode}_devise`}>
-                            <Select placeholder="Sélectionnez" size="large" options={deviseOptions} />
+                            <Select placeholder="SÃ©lectionnez" size="large" options={deviseOptions} />
                           </Form.Item>
                           <Form.Item label={<span style={ls}>Taux TVA local</span>} name={`${countryCode}_tauxTVA`}>
-                            <Select placeholder="Sélectionnez" size="large" options={vatRateOptions} />
+                            <Select placeholder="SÃ©lectionnez" size="large" options={vatRateOptions} />
                           </Form.Item>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-4">
                           <Form.Item label={<span style={ls}>Status TVA</span>} name={`${countryCode}_statusTVA`}>
-                            <Select placeholder="Sélectionnez" size="large" options={statusTVAOptions} />
+                            <Select placeholder="SÃ©lectionnez" size="large" options={statusTVAOptions} />
                           </Form.Item>
                           <Form.Item label={<span style={ls}>Mode de paiement</span>} name={`${countryCode}_modePaiement`}>
-                            <Select placeholder="Sélectionnez" size="large" options={modePaiementOptions} />
+                            <Select placeholder="SÃ©lectionnez" size="large" options={modePaiementOptions} />
                           </Form.Item>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
-                          <Form.Item label={<span style={ls}>Délai de paiement</span>} name={`${countryCode}_delaiPaiement`}>
-                            <Select placeholder="Sélectionnez" size="large" options={delaiPaiementOptions} />
+                          <Form.Item label={<span style={ls}>DÃ©lai de paiement</span>} name={`${countryCode}_delaiPaiement`}>
+                            <Select placeholder="SÃ©lectionnez" size="large" options={delaiPaiementOptions} />
                           </Form.Item>
                           <Form.Item label={<span style={ls}>GL Key</span>} name={`${countryCode}_glKey`}>
-                            <Input placeholder="Clé comptable" size="large" />
+                            <Input placeholder="ClÃ© comptable" size="large" />
                           </Form.Item>
                         </div>
 
@@ -745,7 +752,7 @@ export default function ClientForm({
             {selectedCountries.length > 0 && selectedCountries.length < paysOptions.length && (
               <Alert
                 title={<span style={ls}>Pays disponibles</span>}
-                description={<span style={{ ...ls, fontWeight: 'var(--font-weight-normal)' as const }}>Vous pouvez ajouter {paysOptions.length - selectedCountries.length} pays supplémentaires</span>}
+                description={<span style={{ ...ls, fontWeight: 'var(--font-weight-normal)' as const }}>Vous pouvez ajouter {paysOptions.length - selectedCountries.length} pays supplÃ©mentaires</span>}
                 type="info"
                 showIcon
                 style={{ backgroundColor: 'rgba(24,144,255,0.05)', border: '1px solid rgba(24,144,255,0.12)', borderRadius: 'var(--radius)', marginTop: '16px' }}
@@ -756,7 +763,7 @@ export default function ClientForm({
 
         {/* Modal d'ajout de pays */}
         <Modal
-          title="Ajouter un pays d'opération"
+          title="Ajouter un pays d'opÃ©ration"
           open={isCountryModalOpen}
           onOk={() => {
             if (countryToAdd) {
@@ -769,9 +776,9 @@ export default function ClientForm({
           cancelText="Annuler"
           style={{ top: 20 }}
         >
-          <p style={{ ...ls, color: 'var(--foreground)' }}>Veuillez sélectionner le pays que vous souhaitez ajouter :</p>
+          <p style={{ ...ls, color: 'var(--foreground)' }}>Veuillez sÃ©lectionner le pays que vous souhaitez ajouter :</p>
           <Select
-            placeholder="Sélectionnez un pays"
+            placeholder="SÃ©lectionnez un pays"
             size="large"
             showSearch
             value={countryToAdd}
@@ -784,7 +791,7 @@ export default function ClientForm({
         )}
       </section>
 
-      {/* ══════════ BLOC 3 : JUSTIFICATIFS & VALIDATION ══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â• BLOC 3 : JUSTIFICATIFS & VALIDATION â•â•â•â•â•â•â•â•â•â• */}
       <section id="justificatifs" className="form-section mb-8">
         <div className="flex items-start gap-3">
           <div className="flex-1">
@@ -795,28 +802,28 @@ export default function ClientForm({
 
         {accordionOpen.justificatifs && (
           <>
-        <Card id="documents" title="Pièces Jointes" subtitle="RIB, Kbis, Statuts, etc." icon={<FolderOpenOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
+        <Card id="documents" title="PiÃ¨ces Jointes" subtitle="RIB, Kbis, Statuts, etc." icon={<FolderOpenOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
           <Dragger {...uploadProps}>
             <p className="ant-upload-drag-icon"><InboxOutlined style={{ color: 'var(--primary)', fontSize: '42px' }} /></p>
-            <p style={{ ...ls, fontWeight: 'var(--font-weight-semibold)' as const, color: 'var(--foreground)', margin: '10px 0 4px' }}>Cliquez ou glissez-déposez vos fichiers ici</p>
+            <p style={{ ...ls, fontWeight: 'var(--font-weight-semibold)' as const, color: 'var(--foreground)', margin: '10px 0 4px' }}>Cliquez ou glissez-dÃ©posez vos fichiers ici</p>
             <p style={{ ...ls, color: 'var(--muted-foreground)', margin: 0, fontSize: '13px' }}>PDF, JPG, PNG, DOC, DOCX (max 10 MB)</p>
           </Dragger>
           {filesByType.documents && filesByType.documents.length > 0 && (
             <div className="mt-4 p-3 rounded-lg flex items-center gap-2" style={{ backgroundColor: 'rgba(82,196,26,0.06)', border: '1px solid rgba(82,196,26,0.2)' }}>
               <CheckCircleFilled style={{ color: '#52c41a', fontSize: '18px' }} />
-              <span style={{ ...ls, fontWeight: 'var(--font-weight-semibold)' as const }}>{filesByType.documents.length} fichier(s) ajouté(s)</span>
+              <span style={{ ...ls, fontWeight: 'var(--font-weight-semibold)' as const }}>{filesByType.documents.length} fichier(s) ajoutÃ©(s)</span>
             </div>
           )}
         </Card>
 
         <Card id="commentaires" title="Commentaires" subtitle="Justification de la demande" icon={<FileTextOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
-          <Form.Item label={<span style={ls}>Commentaires {req}</span>} name="commentaires" rules={[{ required: true, message: 'Les commentaires sont obligatoires' }]} className={fc('commentaires')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)' }}>Expliquez le contexte et les raisons de cette création/modification</span>}>
-            <TextArea placeholder="Décrivez le contexte de cette demande..." rows={5} showCount maxLength={1000} />
+          <Form.Item label={<span style={ls}>Commentaires {req}</span>} name="commentaires" rules={[{ required: true, message: 'Les commentaires sont obligatoires' }]} className={fc('commentaires')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)' }}>Expliquez le contexte et les raisons de cette crÃ©ation/modification</span>}>
+            <TextArea placeholder="DÃ©crivez le contexte de cette demande..." rows={5} showCount maxLength={1000} />
           </Form.Item>
           
           <Alert
             title={<span style={ls}>Routage automatique</span>}
-            description={<span style={{ ...ls, fontWeight: 'var(--font-weight-normal)' as const }}>LIFT routera automatiquement le ticket au bon groupe de validation. Le champ "Validateur" a été supprimé.</span>}
+            description={<span style={{ ...ls, fontWeight: 'var(--font-weight-normal)' as const }}>LIFT routera automatiquement le ticket au bon groupe de validation. Le champ "Validateur" a Ã©tÃ© supprimÃ©.</span>}
             type="success"
             showIcon
             style={{ backgroundColor: 'rgba(82,196,26,0.05)', border: '1px solid rgba(82,196,26,0.12)', borderRadius: 'var(--radius)', marginTop: '16px' }}
@@ -828,3 +835,4 @@ export default function ClientForm({
     </Form>
   );
 }
+

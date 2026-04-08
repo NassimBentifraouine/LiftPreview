@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from 'react';
+﻿import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { Alert, App, Button, Checkbox, Collapse, Form, Input, Modal, Popconfirm, Select, Tag, Upload } from 'antd';
 import {
@@ -19,6 +19,7 @@ import {
 import DktIcon from './DktIcon';
 import ProgressSidebar from './ProgressSidebar';
 import type { FormSection } from './types';
+import { buildCountryLabel, getCountryFlagFromCode } from './countryUtils';
 
 const { Dragger } = Upload;
 
@@ -77,27 +78,21 @@ type PrefillRecord = {
   bankName: string;
 };
 
-const countryOptions = [
-  { value: 'FR', label: 'France' },
-  { value: 'BE', label: 'Belgique' },
-  { value: 'ES', label: 'Espagne' },
-  { value: 'DE', label: 'Allemagne' },
-  { value: 'IT', label: 'Italie' },
-  { value: 'GB', label: 'Royaume-Uni' },
-  { value: 'US', label: 'Etats-Unis' },
-  { value: 'CN', label: 'Chine' },
+const countryCatalog = [
+  { value: 'FR', name: 'France' },
+  { value: 'BE', name: 'Belgique' },
+  { value: 'ES', name: 'Espagne' },
+  { value: 'DE', name: 'Allemagne' },
+  { value: 'IT', name: 'Italie' },
+  { value: 'GB', name: 'Royaume-Uni' },
+  { value: 'US', name: 'Etats-Unis' },
+  { value: 'CN', name: 'Chine' },
 ];
 
-const countryFlagMap: Record<string, string> = {
-  FR: '🇫🇷',
-  BE: '🇧🇪',
-  ES: '🇪🇸',
-  DE: '🇩🇪',
-  IT: '🇮🇹',
-  GB: '🇬🇧',
-  US: '🇺🇸',
-  CN: '🇨🇳',
-};
+const countryOptions = countryCatalog.map((country) => ({
+  value: country.value,
+  label: buildCountryLabel(country.value, country.name),
+}));
 
 const natureOptions = [
   { value: 'retail', label: 'Retail' },
@@ -225,8 +220,8 @@ const localFinanceRequiredSuffixes = [
   'localGlKey',
 ];
 
-const getCountryLabel = (code?: string) => countryOptions.find(country => country.value === code)?.label || '-';
-const getCountryFlag = (code?: string) => (code ? countryFlagMap[code] || '🌍' : '🌍');
+const getCountryLabel = (code?: string) => countryCatalog.find(country => country.value === code)?.name || '-';
+const getCountryFlag = (code?: string) => getCountryFlagFromCode(code) || '';
 
 const normalizeRole = (role: string) => role.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
@@ -1978,7 +1973,7 @@ export default function TierFormPage() {
                   <Card
                     id="historique-table"
                     title="Historique des modifications"
-                    subtitle="Traçabilité des actions effectuées sur la fiche tiers"
+                    subtitle="TraÃ§abilitÃ© des actions effectuÃ©es sur la fiche tiers"
                     icon={<FileTextOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}
                   >
                     {historyEntries.length === 0 ? (
@@ -2219,3 +2214,4 @@ export default function TierFormPage() {
     </>
   );
 }
+

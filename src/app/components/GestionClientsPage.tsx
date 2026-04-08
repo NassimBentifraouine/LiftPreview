@@ -1,6 +1,7 @@
 ﻿import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import DktIcon from './DktIcon';
+import { getCountryDisplayFromName } from './countryUtils';
 
 type ClientStatus = 'validated' | 'pending_business' | 'rejected' | 'archived';
 type SearchMode = 'name' | 'id';
@@ -296,7 +297,9 @@ export default function GestionClientsPage() {
                     <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{client.nom}</span>
                     <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{client.dateCreation}</span>
                     <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{client.dateMaj}</span>
-                    <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--primary)' }}>{client.pays}</span>
+                    <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--primary)' }}>
+                      {getCountryDisplayFromName(client.pays)}
+                    </span>
                     <span className="px-3 py-1 rounded-full inline-flex items-center gap-1.5 w-fit" style={{ backgroundColor: cfg.bg, border: `1px solid ${cfg.border}`, fontFamily: 'var(--font-family-text)', fontSize: '12px', fontWeight: 'var(--font-weight-medium)', color: cfg.color }}>
                       <DktIcon name={cfg.icon} size={14} color={cfg.color} />
                       {cfg.label}
