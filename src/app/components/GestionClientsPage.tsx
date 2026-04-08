@@ -1,5 +1,5 @@
 ﻿import { useMemo, useState } from 'react';
-import { App } from 'antd';
+import { App, Popover, Select } from 'antd';
 import { useNavigate } from 'react-router';
 import DktIcon from './DktIcon';
 import CountryFlag from './CountryFlag';
@@ -19,10 +19,10 @@ interface Client {
 }
 
 const statusConfig: Record<ClientStatus, { label: string; icon: string; bg: string; border: string; color: string }> = {
-  validated: { label: 'Validated', icon: 'check-circle', bg: '#F6FFED', border: '#B7EB8F', color: '#389E0D' },
-  pending_business: { label: 'Pending Business', icon: 'bank', bg: '#FFFBE6', border: '#FFE58F', color: '#D4B106' },
-  rejected: { label: 'Rejected', icon: 'close-circle', bg: '#FFF1F0', border: '#FFA39E', color: '#CF1322' },
-  archived: { label: 'Archived', icon: 'folder', bg: '#F5F5F5', border: '#D9D9D9', color: '#595959' },
+  validated: { label: 'Validé', icon: 'check-circle', bg: '#F6FFED', border: '#B7EB8F', color: '#389E0D' },
+  pending_business: { label: 'En attente métier', icon: 'bank', bg: '#FFFBE6', border: '#FFE58F', color: '#D4B106' },
+  rejected: { label: 'Rejeté', icon: 'close-circle', bg: '#FFF1F0', border: '#FFA39E', color: '#CF1322' },
+  archived: { label: 'Archivé', icon: 'folder', bg: '#F5F5F5', border: '#D9D9D9', color: '#595959' },
 };
 
 const mockClients: Client[] = [
@@ -46,6 +46,8 @@ const searchById = (clients: Client[], query: string) => {
   return clients.filter(client => client.id === query);
 };
 
+const ID_FULL_LENGTH = 6;
+
 export default function GestionClientsPage() {
   const { message } = App.useApp();
   const { permissions } = useRoleAccess();
@@ -55,32 +57,48 @@ export default function GestionClientsPage() {
   const [searchMode, setSearchMode] = useState<SearchMode>('name');
   const [searchInput, setSearchInput] = useState('');
   const [committedIdQuery, setCommittedIdQuery] = useState('');
+  const [statusFilters, setStatusFilters] = useState<ClientStatus[]>([]);
+  const [countryFilters, setCountryFilters] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
 
   const canCreateClient = permissions.canCreateClients || permissions.isAdmin;
   const canValidateBusiness = permissions.canValidateBusinessClients || permissions.isAdmin;
-  const canViewArchived = permissions.canViewArchivedClients;
   const canOpenArchived = permissions.canOpenArchivedClients || permissions.isAdmin;
 
   const trimmedInput = searchInput.trim();
   const isNameSearchActive = searchMode === 'name' && trimmedInput.length >= 3;
   const isIdSearchActive = searchMode === 'id' && committedIdQuery.length > 0;
-  const isSearchActive = isNameSearchActive || isIdSearchActive;
-
-  const visibleClients = useMemo(
-    () => (canViewArchived ? clients : clients.filter(client => client.status !== 'archived')),
-    [clients, canViewArchived],
-  );
+  const isSearchActive = isNameSearchActive || isIdSearchActive || statusFilters.length > 0 || countryFilters.length > 0;
 
   const filtered = useMemo(() => {
+    let next = clients;
+
     if (searchMode === 'name') {
-      if (!isNameSearchActive) return visibleClients;
-      return searchByName(visibleClients, trimmedInput);
+      if (isNameSearchActive) {
+        next = searchByName(next, trimmedInput);
+      }
+    } else if (isIdSearchActive) {
+      next = searchById(next, committedIdQuery);
     }
 
-    if (!isIdSearchActive) return visibleClients;
-    return searchById(visibleClients, committedIdQuery);
-  }, [searchMode, isNameSearchActive, isIdSearchActive, trimmedInput, committedIdQuery, visibleClients]);
+    if (statusFilters.length > 0) {
+      next = next.filter(client => statusFilters.includes(client.status));
+    }
+    if (countryFilters.length > 0) {
+      next = next.filter(client => countryFilters.includes(client.pays));
+    }
+
+    return next;
+  }, [
+    searchMode,
+    isNameSearchActive,
+    isIdSearchActive,
+    trimmedInput,
+    committedIdQuery,
+    clients,
+    statusFilters,
+    countryFilters,
+  ]);
 
   const handleModeChange = (mode: SearchMode) => {
     if (mode === searchMode) return;
@@ -92,7 +110,16 @@ export default function GestionClientsPage() {
 
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
-    if (searchMode === 'name') setCurrentPage(1);
+    if (searchMode === 'name') {
+      setCurrentPage(1);
+      return;
+    }
+
+    const normalized = value.trim();
+    if (normalized.length === ID_FULL_LENGTH) {
+      setCommittedIdQuery(normalized);
+      setCurrentPage(1);
+    }
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
@@ -128,10 +155,127 @@ export default function GestionClientsPage() {
   };
 
   const ls = { fontFamily: 'var(--font-family-text)' };
+  const statusFilterOptions = useMemo(
+    () => Object.entries(statusConfig).map(([value, cfg]) => ({ value, label: cfg.label })),
+    [],
+  );
+  const countryFilterOptions = useMemo(() => {
+    const countries = Array.from(new Set(clients.map(client => client.pays))).sort((a, b) => a.localeCompare(b));
+    return countries.map(countryName => {
+      const country = getCountryDisplayPartsFromName(countryName);
+      return {
+        value: countryName,
+        label: (
+          <span className="inline-flex items-center gap-1.5">
+            {country.code && <CountryFlag code={country.code} size={14} />}
+            <span>{country.name}</span>
+          </span>
+        ),
+      };
+    });
+  }, [clients]);
+  const statusFilterPanel = (
+    <div className="w-[300px]">
+      <p
+        className="m-0 mb-1"
+        style={{
+          fontFamily: 'var(--font-family-text)',
+          fontSize: '12px',
+          fontWeight: 'var(--font-weight-medium)',
+          color: 'var(--muted-foreground)',
+        }}
+      >
+        Filtrer par statut
+      </p>
+      <Select
+        mode="multiple"
+        allowClear
+        maxTagCount="responsive"
+        value={statusFilters}
+        onChange={(values) => {
+          setStatusFilters(values as ClientStatus[]);
+          setCurrentPage(1);
+        }}
+        options={statusFilterOptions}
+        placeholder="Sélectionnez un ou plusieurs statuts"
+        style={{ width: '100%' }}
+      />
+      <div className="flex justify-end mt-3">
+        <button
+          onClick={() => {
+            setStatusFilters([]);
+            setCurrentPage(1);
+          }}
+          className="px-3 py-1.5"
+          style={{
+            backgroundColor: 'transparent',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-button)',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-family-text)',
+            fontSize: '12px',
+            fontWeight: 'var(--font-weight-medium)',
+            color: 'var(--foreground)',
+          }}
+        >
+          Réinitialiser
+        </button>
+      </div>
+    </div>
+  );
+  const countryFilterPanel = (
+    <div className="w-[300px]">
+      <p
+        className="m-0 mb-1"
+        style={{
+          fontFamily: 'var(--font-family-text)',
+          fontSize: '12px',
+          fontWeight: 'var(--font-weight-medium)',
+          color: 'var(--muted-foreground)',
+        }}
+      >
+        Filtrer par pays
+      </p>
+      <Select
+        mode="multiple"
+        allowClear
+        maxTagCount="responsive"
+        value={countryFilters}
+        onChange={(values) => {
+          setCountryFilters(values as string[]);
+          setCurrentPage(1);
+        }}
+        options={countryFilterOptions}
+        placeholder="Sélectionnez un ou plusieurs pays"
+        style={{ width: '100%' }}
+      />
+      <div className="flex justify-end mt-3">
+        <button
+          onClick={() => {
+            setCountryFilters([]);
+            setCurrentPage(1);
+          }}
+          className="px-3 py-1.5"
+          style={{
+            backgroundColor: 'transparent',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-button)',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-family-text)',
+            fontSize: '12px',
+            fontWeight: 'var(--font-weight-medium)',
+            color: 'var(--foreground)',
+          }}
+        >
+          Réinitialiser
+        </button>
+      </div>
+    </div>
+  );
 
   return (
-    <div style={{ backgroundColor: 'rgba(245,244,245,0.7)', minHeight: 'calc(100vh - 180px)' }}>
-      <div className="max-w-[1440px] mx-auto px-16 pt-10 pb-8">
+    <div style={{ backgroundColor: 'rgba(245,244,245,0.7)', minHeight: '100%' }}>
+      <div className="max-w-[1440px] mx-auto px-4 md:px-8 xl:px-12 2xl:px-16 pt-8 pb-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="m-0" style={{ fontFamily: 'var(--font-family-display)', fontSize: '28px', fontWeight: 'var(--font-weight-semibold)', color: 'var(--foreground)', lineHeight: '42px' }}>
@@ -233,12 +377,12 @@ export default function GestionClientsPage() {
             <p className="m-0 mt-2" style={{ fontFamily: 'var(--font-family-text)', fontSize: '12px', fontWeight: 'var(--font-weight-normal)', color: 'var(--muted-foreground)' }}>
               {searchMode === 'name'
                 ? 'La recherche se lance automatiquement à partir de 3 caractères'
-                : 'La recherche se lance en appuyant sur Entrée'}
+                : `La recherche se lance à ${ID_FULL_LENGTH} caractères ou en appuyant sur Entrée`}
             </p>
 
             {searchMode === 'id' && searchInput.trim() && searchInput.trim() !== committedIdQuery && (
               <p className="m-0 mt-1" style={{ fontFamily: 'var(--font-family-text)', fontSize: '12px', fontWeight: 'var(--font-weight-medium)', color: 'var(--primary)' }}>
-                Appuyez sur Entrée pour lancer cette recherche.
+                Appuyez sur Entrée ou saisissez {ID_FULL_LENGTH} caractères pour lancer cette recherche.
               </p>
             )}
 
@@ -248,11 +392,6 @@ export default function GestionClientsPage() {
               </p>
             )}
 
-            {!canViewArchived && clients.some(client => client.status === 'archived') && (
-              <p className="m-0 mt-1" style={{ fontFamily: 'var(--font-family-text)', fontSize: '12px', fontWeight: 'var(--font-weight-normal)', color: 'var(--muted-foreground)' }}>
-                Les clients archivés sont masqués pour ce rôle.
-              </p>
-            )}
           </div>
 
           {filtered.length === 0 ? (
@@ -287,106 +426,140 @@ export default function GestionClientsPage() {
               )}
             </div>
           ) : (
-            <>
-              <div className="grid px-6 py-3" style={{ gridTemplateColumns: '80px 1fr 1fr 1fr 100px 180px 140px', borderBottom: '1px solid var(--border)' }}>
-                {['ID', 'Nom du client', 'Date de création ↓', 'Date de mise à jour ↓', 'Pays', 'État', 'Actions'].map(h => (
-                  <span key={h} style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}>{h}</span>
-                ))}
-              </div>
-              {filtered.map((client, i) => {
-                const cfg = statusConfig[client.status];
-                const isArchivedLocked = client.status === 'archived' && !canOpenArchived;
-                return (
-                  <div
-                    key={`${client.id}-${i}`}
-                    onClick={() => handleOpenClient(client)}
-                    className="grid px-6 py-3 items-center"
-                    style={{
-                      gridTemplateColumns: '80px 1fr 1fr 1fr 100px 180px 140px',
-                      borderBottom: '1px solid var(--border)',
-                      backgroundColor: isArchivedLocked ? '#f6f6f6' : 'transparent',
-                      opacity: isArchivedLocked ? 0.6 : 1,
-                      cursor: isArchivedLocked ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    <span
-                      className="px-2 py-0.5 rounded inline-block w-fit"
+            <div style={{ overflowX: 'auto' }}>
+              <div style={{ minWidth: '1080px' }}>
+                <div className="grid px-6 py-3 items-center" style={{ gridTemplateColumns: '80px 1fr 1fr 1fr 140px 180px 140px', borderBottom: '1px solid var(--border)' }}>
+                  <span style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}>ID</span>
+                  <span style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}>Nom du client</span>
+                  <span style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}>Date de création</span>
+                  <span style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}>Date de mise à jour</span>
+                  <Popover trigger="click" placement="bottomLeft" content={countryFilterPanel}>
+                    <button
+                      className="flex items-center gap-1.5 p-0 bg-transparent border-0 w-fit"
                       style={{
-                        backgroundColor: isArchivedLocked ? 'rgba(0,0,0,0.06)' : 'rgba(54,67,186,0.08)',
-                        fontFamily: 'var(--font-family-text)',
-                        fontSize: '12px',
+                        cursor: 'pointer',
+                        ...ls,
+                        fontSize: '13px',
                         fontWeight: 'var(--font-weight-medium)',
-                        color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--primary)',
+                        color: countryFilters.length > 0 ? 'var(--primary)' : 'var(--muted-foreground)',
                       }}
                     >
-                      {client.id}
-                    </span>
-                    <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{client.nom}</span>
-                    <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{client.dateCreation}</span>
-                    <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{client.dateMaj}</span>
-                    <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--primary)' }}>
-                      {(() => {
-                        const country = getCountryDisplayPartsFromName(client.pays);
-                        return (
-                          <>
-                            {country.code && <CountryFlag code={country.code} size={14} style={{ marginRight: '6px' }} />}
-                            {country.name}
-                          </>
-                        );
-                      })()}
-                    </span>
-                    <span className="px-3 py-1 rounded-full inline-flex items-center gap-1.5 w-fit" style={{ backgroundColor: cfg.bg, border: `1px solid ${cfg.border}`, fontFamily: 'var(--font-family-text)', fontSize: '12px', fontWeight: 'var(--font-weight-medium)', color: cfg.color }}>
-                      <DktIcon name={cfg.icon} size={14} color={cfg.color} />
-                      {cfg.label}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      {canValidateBusiness && client.status === 'pending_business' && (
-                        <>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleBusinessDecision(client.id, 'validated');
-                            }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
-                            title="Valider"
-                          >
-                            <DktIcon name="check-circle" size={18} color="#389E0D" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleBusinessDecision(client.id, 'rejected');
-                            }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
-                            title="Rejeter"
-                          >
-                            <DktIcon name="close-circle" size={18} color="#CF1322" />
-                          </button>
-                        </>
-                      )}
-
-                      <button
-                        disabled={isArchivedLocked}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenClient(client);
-                        }}
+                      Pays {countryFilters.length > 0 ? `(${countryFilters.length})` : ''}
+                      <DktIcon name="filter" size={13} color={countryFilters.length > 0 ? 'var(--primary)' : 'var(--muted-foreground)'} />
+                    </button>
+                  </Popover>
+                  <Popover trigger="click" placement="bottomLeft" content={statusFilterPanel}>
+                    <button
+                      className="flex items-center gap-1.5 p-0 bg-transparent border-0 w-fit"
+                      style={{
+                        cursor: 'pointer',
+                        ...ls,
+                        fontSize: '13px',
+                        fontWeight: 'var(--font-weight-medium)',
+                        color: statusFilters.length > 0 ? 'var(--primary)' : 'var(--muted-foreground)',
+                      }}
+                    >
+                      État {statusFilters.length > 0 ? `(${statusFilters.length})` : ''}
+                      <DktIcon name="filter" size={13} color={statusFilters.length > 0 ? 'var(--primary)' : 'var(--muted-foreground)'} />
+                    </button>
+                  </Popover>
+                  <span style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}>Actions</span>
+                </div>
+                {filtered.map((client, i) => {
+                  const cfg = statusConfig[client.status];
+                  const isArchivedLocked = client.status === 'archived' && !canOpenArchived;
+                  return (
+                    <div
+                      key={`${client.id}-${i}`}
+                      onClick={() => handleOpenClient(client)}
+                      className="grid px-6 py-3 items-center"
+                      style={{
+                        gridTemplateColumns: '80px 1fr 1fr 1fr 140px 180px 140px',
+                        borderBottom: '1px solid var(--border)',
+                        backgroundColor: isArchivedLocked ? '#f6f6f6' : 'transparent',
+                        opacity: isArchivedLocked ? 0.6 : 1,
+                        cursor: isArchivedLocked ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      <span
+                        className="px-2 py-0.5 rounded inline-block w-fit"
                         style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: isArchivedLocked ? 'not-allowed' : 'pointer',
-                          padding: '4px',
-                          opacity: isArchivedLocked ? 0.5 : 1,
+                          backgroundColor: isArchivedLocked ? 'rgba(0,0,0,0.06)' : 'rgba(54,67,186,0.08)',
+                          fontFamily: 'var(--font-family-text)',
+                          fontSize: '12px',
+                          fontWeight: 'var(--font-weight-medium)',
+                          color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--primary)',
                         }}
-                        title="Consulter"
                       >
-                        <DktIcon name="eye" size={18} color="var(--muted-foreground)" />
-                      </button>
+                        {client.id}
+                      </span>
+                      <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{client.nom}</span>
+                      <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{client.dateCreation}</span>
+                      <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{client.dateMaj}</span>
+                      <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--primary)' }}>
+                        {(() => {
+                          const country = getCountryDisplayPartsFromName(client.pays);
+                          return (
+                            <>
+                              {country.code && <CountryFlag code={country.code} size={14} style={{ marginRight: '6px' }} />}
+                              {country.name}
+                            </>
+                          );
+                        })()}
+                      </span>
+                      <span className="px-3 py-1 rounded-full inline-flex items-center gap-1.5 w-fit" style={{ backgroundColor: cfg.bg, border: `1px solid ${cfg.border}`, fontFamily: 'var(--font-family-text)', fontSize: '12px', fontWeight: 'var(--font-weight-medium)', color: cfg.color }}>
+                        <DktIcon name={cfg.icon} size={14} color={cfg.color} />
+                        {cfg.label}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {canValidateBusiness && client.status === 'pending_business' && (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleBusinessDecision(client.id, 'validated');
+                              }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+                              title="Valider"
+                            >
+                              <DktIcon name="check-circle" size={18} color="#389E0D" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleBusinessDecision(client.id, 'rejected');
+                              }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+                              title="Rejeter"
+                            >
+                              <DktIcon name="close-circle" size={18} color="#CF1322" />
+                            </button>
+                          </>
+                        )}
+
+                        <button
+                          disabled={isArchivedLocked}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenClient(client);
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: isArchivedLocked ? 'not-allowed' : 'pointer',
+                            padding: '4px',
+                            opacity: isArchivedLocked ? 0.5 : 1,
+                          }}
+                          title="Consulter"
+                        >
+                          <DktIcon name="eye" size={18} color="var(--muted-foreground)" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
 

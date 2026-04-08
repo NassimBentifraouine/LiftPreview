@@ -160,7 +160,7 @@ const roleConfigs: RoleConfig[] = [
     canViewArchivedClients: false,
     canOpenArchivedTiers: false,
     canOpenArchivedClients: false,
-    canViewTierHistory: false,
+    canViewTierHistory: true,
     canSeeBankDetails: false,
   },
   {
@@ -208,7 +208,7 @@ const roleConfigs: RoleConfig[] = [
     canViewArchivedClients: false,
     canOpenArchivedTiers: false,
     canOpenArchivedClients: false,
-    canViewTierHistory: false,
+    canViewTierHistory: true,
     canSeeBankDetails: false,
   },
   {
@@ -256,7 +256,7 @@ const roleConfigs: RoleConfig[] = [
     canViewArchivedClients: false,
     canOpenArchivedTiers: false,
     canOpenArchivedClients: false,
-    canViewTierHistory: false,
+    canViewTierHistory: true,
     canSeeBankDetails: true,
   },
   {

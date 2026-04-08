@@ -53,9 +53,9 @@ export default function SharedLayout() {
   }, [canAccessCurrentRoute, navigate]);
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ backgroundColor: 'var(--background)' }}>
+    <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: 'var(--background)' }}>
       <header className="shrink-0 z-50" style={{ backgroundColor: 'var(--card)' }}>
-        <div className="flex items-center justify-between px-16 py-6">
+        <div className="flex items-center justify-between px-4 md:px-8 xl:px-12 2xl:px-16 py-4 md:py-6">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
             <svg className="w-[187px] h-[28px]" fill="none" preserveAspectRatio="none" viewBox="0 0 186.16 28">
               <g>
@@ -98,7 +98,7 @@ export default function SharedLayout() {
           </div>
         </div>
 
-        <div className="px-16 pb-4" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="px-4 md:px-8 xl:px-12 2xl:px-16 pb-3 md:pb-4" style={{ borderTop: '1px solid var(--border)' }}>
           <div className="flex items-start justify-between gap-4 pt-3 flex-wrap">
             <div>
               <p
@@ -165,12 +165,12 @@ export default function SharedLayout() {
         </div>
 
         {!isHome && !isFormPage && visibleTabs.length > 0 && (
-          <div className="flex justify-center" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="flex justify-center overflow-x-auto" style={{ borderTop: '1px solid var(--border)' }}>
             {visibleTabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => navigate(tab.path)}
-                className="px-6 py-3"
+                className="px-4 md:px-6 py-3 shrink-0"
                 style={{
                   backgroundColor: 'transparent',
                   border: 'none',
@@ -189,12 +189,12 @@ export default function SharedLayout() {
         )}
       </header>
 
-      <main className="flex-1">
+      <main className={isFormPage ? 'flex-1 min-h-0 overflow-hidden' : 'flex-1 min-h-0 overflow-y-auto'}>
         {canAccessCurrentRoute ? <Outlet /> : null}
       </main>
 
       <footer
-        className="shrink-0 flex items-center justify-center gap-5 px-8 py-4"
+        className="shrink-0 flex items-center justify-center gap-3 md:gap-5 px-4 md:px-8 py-3 md:py-4 flex-wrap"
         style={{ backgroundColor: 'var(--primary)' }}
       >
         <p

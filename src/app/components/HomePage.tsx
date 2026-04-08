@@ -42,6 +42,7 @@ const cards = [
     desc: 'Paramètres réservés aux administrateurs',
     path: '/administration',
   },
+
 ];
 
 export default function HomePage() {
@@ -49,116 +50,135 @@ export default function HomePage() {
   const { permissions } = useRoleAccess();
 
   return (
-    <div className="relative overflow-hidden" style={{ backgroundColor: 'rgba(245,244,245,0.7)', minHeight: 'calc(100vh - 180px)' }}>
-      {/* Background blob */}
-      <div className="absolute" style={{ top: '0', right: '-4%', width: '830px', height: '740px', opacity: 0.1 }}>
-        <svg width="100%" height="100%" viewBox="0 0 1191.81 1054.85" fill="none" preserveAspectRatio="xMidYMid meet" style={{ transform: 'scaleY(-1) rotate(-178.14deg)' }}>
-          <path d={accueilSvg.p17c34b00} fill="var(--primary)" />
-        </svg>
+    <div className="relative min-h-full overflow-hidden" style={{ backgroundColor: '#f5f5f6' }}>
+      <div className="pointer-events-none absolute inset-0">
+        <div
+          style={{
+            position: 'absolute',
+            left: '-8%',
+            top: 0,
+            width: '58%',
+            minWidth: '520px',
+            height: '115%',
+            backgroundColor: 'rgba(145,146,255,0.18)',
+            borderBottomRightRadius: '420px',
+            borderTopRightRadius: '18px',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            left: '-22%',
+            bottom: '-44%',
+            width: '72%',
+            minWidth: '700px',
+            aspectRatio: '1 / 1',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(145,146,255,0.16)',
+          }}
+        />
       </div>
 
-      <div className="relative max-w-[1440px] mx-auto px-16 pt-16 pb-20">
-        <div className="flex gap-20">
-          {/* Left content */}
-          <div className="flex-1 max-w-[600px]">
+      <div className="relative max-w-[1440px] mx-auto px-4 md:px-8 xl:px-12 2xl:px-16 pt-10 md:pt-12 pb-12 md:pb-16">
+        <div className="flex flex-col xl:flex-row xl:items-start gap-10 xl:gap-6">
+          <div className="w-full xl:max-w-[820px]">
             <h1
-              className="m-0 mb-3"
+              className="m-0 whitespace-nowrap"
               style={{
                 fontFamily: 'var(--font-family-display)',
-                fontSize: '74px',
+                fontSize: 'clamp(42px, 6vw, 68px)',
                 fontWeight: 'var(--font-weight-semibold)',
                 color: 'var(--primary)',
-                lineHeight: '1.08',
+                lineHeight: '1.05',
               }}
             >
               Bienvenue Nassim
             </h1>
             <p
-              className="m-0 mb-12"
+              className="m-0 mt-2 mb-8 md:mb-10"
               style={{
                 fontFamily: 'var(--font-family-text)',
-                fontSize: '20px',
+                fontSize: 'clamp(18px, 1.8vw, 22px)',
                 fontWeight: 'var(--font-weight-medium)',
                 color: 'var(--foreground)',
-                lineHeight: '1.5',
+                lineHeight: '1.35',
               }}
             >
               Le référentiel des Tiers internes et des Clients B2B
             </p>
 
-            {/* Cards grid */}
             <div className="grid grid-cols-2 gap-5">
               {cards
                 .filter(card => canAccessPath(card.path, permissions))
                 .map((card) => (
-                <div
-                  key={card.path}
-                  className="flex flex-col"
-                  style={{
-                    backgroundColor: 'var(--card)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '10px',
-                    padding: '20px',
-                  }}
-                >
-                  <div className="flex items-start gap-3 mb-4">
-                    <div
-                      className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: 'rgba(54,67,186,0.1)' }}
-                    >
-                      <DktIcon name={card.icon} size={24} color="var(--primary)" />
-                    </div>
-                    <div>
-                      <p
-                        className="m-0"
-                        style={{
-                          fontFamily: 'var(--font-family-display)',
-                          fontSize: 'var(--text-base)',
-                          fontWeight: 'var(--font-weight-semibold)',
-                          color: 'var(--foreground)',
-                          lineHeight: '1',
-                        }}
-                      >
-                        {card.title}
-                      </p>
-                      <p
-                        className="m-0 mt-1.5"
-                        style={{
-                          fontFamily: 'var(--font-family-text)',
-                          fontSize: '13px',
-                          fontWeight: 'var(--font-weight-normal)',
-                          color: 'var(--foreground)',
-                          lineHeight: '1.5',
-                        }}
-                      >
-                        {card.desc}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => navigate(card.path)}
-                    className="flex items-center justify-center gap-1 w-full py-2 px-4 mt-auto"
+                  <div
+                    key={card.path}
+                    className="flex flex-col justify-between"
                     style={{
-                      backgroundColor: 'var(--primary)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: 'var(--radius-button)',
-                      cursor: 'pointer',
-                      fontFamily: 'var(--font-family-text)',
-                      fontSize: '12px',
-                      fontWeight: 'var(--font-weight-medium)',
+                      backgroundColor: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '12px',
+                      padding: '14px',
+                      minHeight: '132px',
                     }}
                   >
-                    Accéder <ArrowIcon />
-                  </button>
-                </div>
-              ))}
+                    <div className="flex items-start gap-2.5 mb-3">
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: 'rgba(54,67,186,0.1)' }}
+                      >
+                        <DktIcon name={card.icon} size={20} color="var(--primary)" />
+                      </div>
+                      <div>
+                        <p
+                          className="m-0"
+                          style={{
+                            fontFamily: 'var(--font-family-display)',
+                            fontSize: 'var(--text-base)',
+                            fontWeight: 'var(--font-weight-semibold)',
+                            color: 'var(--foreground)',
+                            lineHeight: '1.1',
+                          }}
+                        >
+                          {card.title}
+                        </p>
+                        <p
+                          className="m-0 mt-1"
+                          style={{
+                            fontFamily: 'var(--font-family-text)',
+                            fontSize: '13px',
+                            fontWeight: 'var(--font-weight-normal)',
+                            color: 'var(--foreground)',
+                            lineHeight: '1.35',
+                          }}
+                        >
+                          {card.desc}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => navigate(card.path)}
+                      className="flex items-center justify-center gap-1 w-full py-2 px-4 mt-auto"
+                      style={{
+                        backgroundColor: 'var(--primary)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '999px',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-family-text)',
+                        fontSize: '13px',
+                        fontWeight: 'var(--font-weight-medium)',
+                      }}
+                    >
+                      Accéder <ArrowIcon />
+                    </button>
+                  </div>
+                ))}
             </div>
           </div>
 
-          {/* Right illustration */}
-          <div className="flex-1 flex items-center justify-center" style={{ minWidth: '400px' }}>
-            <svg width="576" height="466" viewBox="0 0 575.838 466.017" fill="none" className="w-full h-auto max-w-[576px]">
+          <div className="hidden xl:flex flex-1 items-center justify-end min-w-0 pr-0 xl:pt-24">
+            <svg width="576" height="466" viewBox="0 0 575.838 466.017" fill="none" className="w-full h-auto max-w-[620px]">
               <path d={accueilSvg.p2d180ef0} fill="#E5E5FF" />
               <path d={accueilSvg.p19741b00} fill="#E5E5FF" />
               <path d={accueilSvg.pd31ae20} fill="#E5E5FF" />

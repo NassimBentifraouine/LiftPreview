@@ -75,6 +75,7 @@ const countryCatalog = [
   { value: 'ES', name: 'Espagne' },
   { value: 'DE', name: 'Allemagne' },
   { value: 'IT', name: 'Italie' },
+  { value: 'PT', name: 'Portugal' },
   { value: 'GB', name: 'Royaume-Uni' },
   { value: 'US', name: 'États-Unis' },
   { value: 'CN', name: 'Chine' },
@@ -162,6 +163,76 @@ const mockTierById: Record<string, PrefillRecord> = {
     city: 'Bruxelles',
     iban: 'BE62510007547061',
     swift: 'GEBABEBB',
+    bankName: 'ing_be',
+  },
+  '100003': {
+    legalName: 'Decathlon España S.A.',
+    country: 'ES',
+    taxId: 'ESA28017895',
+    phone: '+34 91 345 67 89',
+    email: 'contact.es@decathlon.com',
+    addressNumber: '16',
+    addressStreet: 'Calle de Alcala',
+    postalCode: '28014',
+    city: 'Madrid',
+    iban: 'ES9121000418450200051332',
+    swift: 'CAIXESBBXXX',
+    bankName: 'bnp_fr',
+  },
+  '100004': {
+    legalName: 'Decathlon Italia SRL',
+    country: 'IT',
+    taxId: 'IT12345678901',
+    phone: '+39 02 1234 5678',
+    email: 'contact.it@decathlon.com',
+    addressNumber: '8',
+    addressStreet: 'Via Torino',
+    postalCode: '20123',
+    city: 'Milano',
+    iban: 'IT60X0542811101000000123456',
+    swift: 'BCITITMM',
+    bankName: 'db_de',
+  },
+  '100005': {
+    legalName: 'Decathlon Deutschland GmbH',
+    country: 'DE',
+    taxId: 'DE123456789',
+    phone: '+49 30 1234567',
+    email: 'contact.de@decathlon.com',
+    addressNumber: '21',
+    addressStreet: 'Alexanderplatz',
+    postalCode: '10178',
+    city: 'Berlin',
+    iban: 'DE89370400440532013000',
+    swift: 'COBADEFFXXX',
+    bankName: 'db_de',
+  },
+  '100006': {
+    legalName: 'Decathlon UK Ltd',
+    country: 'GB',
+    taxId: 'GB123456789',
+    phone: '+44 20 7123 4567',
+    email: 'contact.uk@decathlon.com',
+    addressNumber: '1',
+    addressStreet: 'Canary Wharf',
+    postalCode: 'E14 5AB',
+    city: 'London',
+    iban: 'GB82WEST12345698765432',
+    swift: 'NWBKGB2L',
+    bankName: 'db_de',
+  },
+  '100007': {
+    legalName: 'Decathlon Portugal Lda',
+    country: 'PT',
+    taxId: 'PT503123456',
+    phone: '+351 21 123 45 67',
+    email: 'contact.pt@decathlon.com',
+    addressNumber: '45',
+    addressStreet: 'Avenida da Liberdade',
+    postalCode: '1250-140',
+    city: 'Lisboa',
+    iban: 'PT50000201231234567890154',
+    swift: 'BCOMPTPL',
     bankName: 'ing_be',
   },
 };
@@ -279,9 +350,9 @@ export default function TierFormPage() {
   const [generatedTierId] = useState(() => `10${Math.floor(Math.random() * 100000)}`);
 
   const tierId = searchParams.get('tierId') || generatedTierId;
-  const mode = searchParams.get('mode') === 'view' ? 'view' : 'edit';
+  const requestedViewMode = searchParams.get('mode') === 'view';
   const canEditTier = permissions.canCreateTiers || permissions.isAdmin;
-  const readOnly = mode === 'view' || !canEditTier;
+  const readOnly = !canEditTier;
 
   const [activeSection, setActiveSection] = useState<string>('identite');
   const [activeSubsection, setActiveSubsection] = useState<string>('infos-principales');
@@ -319,7 +390,7 @@ export default function TierFormPage() {
   const iban = Form.useWatch('iban', form) as string | undefined;
   const apRole = Form.useWatch('apRole', form) as boolean | undefined;
   const arRole = Form.useWatch('arRole', form) as boolean | undefined;
-  const canViewHistory = readOnly && permissions.canViewTierHistory;
+  const canViewHistory = (readOnly || requestedViewMode) && permissions.canViewTierHistory;
   const displayedIban = permissions.canSeeBankDetails ? (iban || '-') : maskIban(iban);
   const canValidateBusiness = permissions.canValidateBusinessTiers || permissions.isAdmin;
   const canValidateTreasury = permissions.canValidateTreasuryTiers;
@@ -689,6 +760,10 @@ export default function TierFormPage() {
     );
   };
 
+  const handleReportSapError = () => {
+    message.warning('Signalement d’erreur SAP envoyé (mock).');
+  };
+
   const fc = (fieldName: string) => (completedFields.has(fieldName) ? 'field-completed' : '');
   const doneIcon = (fieldName: string) =>
     completedFields.has(fieldName) ? <CheckCircleFilled style={{ color: '#52c41a' }} /> : undefined;
@@ -882,7 +957,7 @@ export default function TierFormPage() {
 
   return (
     <>
-      <div className="flex" style={{ height: 'calc(100vh - 88px)' }}>
+      <div className="flex h-full min-h-0">
         <aside
           className="shrink-0 flex flex-col overflow-hidden"
           style={{
@@ -1034,8 +1109,9 @@ export default function TierFormPage() {
           )}
         </aside>
 
-        <main ref={contentRef} className="flex-1 overflow-y-auto" style={{ backgroundColor: '#f6f6f5' }}>
-          <div className="max-w-4xl mx-auto px-10 py-8">
+        <main className="flex-1 flex flex-col" style={{ backgroundColor: '#f6f6f5' }}>
+          <div ref={contentRef} className="flex-1 overflow-y-auto">
+            <div className="max-w-4xl mx-auto px-10 pt-8 pb-10">
             <Form
               form={form}
               layout="vertical"
@@ -1065,7 +1141,7 @@ export default function TierFormPage() {
                         letterSpacing: '0.5px',
                       }}
                     >
-                      ID Tiers LIFT
+                      Nom légal
                     </div>
                     <div
                       style={{
@@ -1075,7 +1151,18 @@ export default function TierFormPage() {
                         color: 'var(--foreground)',
                       }}
                     >
-                      {tierId}
+                      {legalName || '-'}
+                    </div>
+                    <div
+                      style={{
+                        ...ls,
+                        fontSize: '12px',
+                        fontWeight: 'var(--font-weight-normal)',
+                        color: 'var(--muted-foreground)',
+                        marginTop: '2px',
+                      }}
+                    >
+                      ID SAP: {tierId}
                     </div>
                   </div>
                 </div>
@@ -2137,13 +2224,22 @@ export default function TierFormPage() {
               )}
             </Form>
 
-            <div
-              className="flex items-center justify-between pt-5 pb-6 mt-10 sticky bottom-0"
-              style={{ backgroundColor: '#f6f6f5', borderTop: '1px solid var(--border)' }}
-            >
+            
+            </div>
+          </div>
+
+          <div
+            className="shrink-0"
+            style={{
+              backgroundColor: '#f6f6f5',
+              borderTop: '1px solid var(--border)',
+              boxShadow: '0 -8px 20px rgba(15, 23, 42, 0.06)',
+            }}
+          >
+            <div className="max-w-4xl mx-auto px-10 py-4 flex items-center justify-between gap-3 flex-wrap">
               {canShowClientLink ? (
                 <button
-                  onClick={() => navigate(`/clients/new?tierId=${tierId}`)}
+                  onClick={() => navigate(`/clients/new?tierId=${tierId}${readOnly ? '&mode=view' : ''}`)}
                   className="flex items-center gap-2 px-5 py-2.5"
                   style={{
                     backgroundColor: 'transparent',
@@ -2162,7 +2258,26 @@ export default function TierFormPage() {
                 <div />
               )}
 
-              <div className="flex items-center gap-3 ml-auto">
+              <div className="flex items-center gap-3 ml-auto flex-wrap justify-end">
+                {readOnly && (
+                  <button
+                    onClick={handleReportSapError}
+                    className="px-5 py-2.5"
+                    style={{
+                      backgroundColor: '#FFF7E6',
+                      border: '1px solid #FFD591',
+                      borderRadius: 'var(--radius-button)',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-family-text)',
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 'var(--font-weight-medium)',
+                      color: '#D46B08',
+                    }}
+                  >
+                    Signaler une erreur SAP
+                  </button>
+                )}
+
                 {canValidateBusiness && (
                   <>
                     <button

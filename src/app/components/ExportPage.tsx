@@ -1,7 +1,7 @@
 export default function ExportPage() {
   return (
-    <div style={{ backgroundColor: 'rgba(245,244,245,0.7)', minHeight: 'calc(100vh - 180px)' }}>
-      <div className="max-w-[1440px] mx-auto px-16 pt-10 pb-8">
+    <div style={{ backgroundColor: 'rgba(245,244,245,0.7)', minHeight: '100%' }}>
+      <div className="max-w-[1440px] mx-auto px-4 md:px-8 xl:px-12 2xl:px-16 pt-8 pb-8">
         <h1 className="m-0 mb-2" style={{ fontFamily: 'var(--font-family-display)', fontSize: '28px', fontWeight: 'var(--font-weight-semibold)', color: 'var(--foreground)' }}>
           Exporter de la donnée
         </h1>

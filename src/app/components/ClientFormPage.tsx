@@ -61,10 +61,12 @@ export default function ClientFormPage() {
   const contentRef = useRef<HTMLDivElement>(null);
   const isManualScrollRef = useRef(false);
 
-  const mode = searchParams.get('mode') === 'view' ? 'view' : 'edit';
+  const requestedViewMode = searchParams.get('mode') === 'view';
+  const linkedTierId = searchParams.get('tierId');
   const canEditClient = permissions.canCreateClients || permissions.isAdmin;
-  const readOnly = mode === 'view' || !canEditClient;
+  const readOnly = !canEditClient;
   const canValidateBusiness = permissions.canValidateBusinessClients || permissions.isAdmin;
+  const canGoToLinkedTier = !!linkedTierId && permissions.canAccessTiers;
 
   const handleFieldComplete = (fieldName: string, isComplete: boolean) => {
     setCompletedFields(prev => {
@@ -126,7 +128,7 @@ export default function ClientFormPage() {
   }, [completedFields]);
 
   return (
-    <div className="flex" style={{ height: 'calc(100vh - 88px)' }}>
+    <div className="flex h-full min-h-0">
       <aside
         className="shrink-0 flex flex-col overflow-hidden"
         style={{
@@ -212,8 +214,9 @@ export default function ClientFormPage() {
         )}
       </aside>
 
-      <main ref={contentRef} className="flex-1 overflow-y-auto" style={{ backgroundColor: '#f6f6f5' }}>
-        <div className="max-w-4xl mx-auto px-10 py-8">
+      <main className="flex-1 flex flex-col" style={{ backgroundColor: '#f6f6f5' }}>
+        <div ref={contentRef} className="flex-1 overflow-y-auto">
+          <div className="max-w-4xl mx-auto px-10 pt-8 pb-10">
           {readOnly && (
             <div
               className="mb-4 px-4 py-3 rounded-lg"
@@ -221,6 +224,16 @@ export default function ClientFormPage() {
             >
               <p className="m-0" style={{ fontFamily: 'var(--font-family-text)', fontSize: '13px', color: 'var(--foreground)' }}>
                 Cette fiche est en lecture seule pour le rôle {permissions.ldap}.
+              </p>
+            </div>
+          )}
+          {!readOnly && requestedViewMode && (
+            <div
+              className="mb-4 px-4 py-3 rounded-lg"
+              style={{ backgroundColor: 'rgba(82,196,26,0.08)', border: '1px solid rgba(82,196,26,0.2)' }}
+            >
+              <p className="m-0" style={{ fontFamily: 'var(--font-family-text)', fontSize: '13px', color: 'var(--foreground)' }}>
+                Mode consultation détecté, mais ce rôle peut éditer: vous pouvez enregistrer et soumettre.
               </p>
             </div>
           )}
@@ -235,13 +248,21 @@ export default function ClientFormPage() {
               onAccountReceivableChange={setHasAccountReceivable}
             />
           </div>
+          </div>
+        </div>
 
-          <div
-            className="flex items-center justify-between pt-5 pb-6 mt-10 sticky bottom-0"
-            style={{ backgroundColor: '#f6f6f5', borderTop: '1px solid var(--border)' }}
-          >
-            {hasAccountReceivable ? (
+        <div
+          className="shrink-0"
+          style={{
+            backgroundColor: '#f6f6f5',
+            borderTop: '1px solid var(--border)',
+            boxShadow: '0 -8px 20px rgba(15, 23, 42, 0.06)',
+          }}
+        >
+          <div className="max-w-4xl mx-auto px-10 py-4 flex items-center justify-between gap-3 flex-wrap">
+            {canGoToLinkedTier ? (
               <button
+                onClick={() => navigate(`/tiers/new?tierId=${linkedTierId}&mode=view`)}
                 className="flex items-center gap-2 px-5 py-2.5"
                 style={{
                   backgroundColor: 'transparent',
@@ -254,13 +275,13 @@ export default function ClientFormPage() {
                   color: 'var(--primary)',
                 }}
               >
-                Aller vers la fiche Client
+                Aller vers la fiche Tiers
               </button>
             ) : (
               <div />
             )}
 
-            <div className="flex items-center gap-3 ml-auto">
+            <div className="flex items-center gap-3 ml-auto flex-wrap justify-end">
               {canValidateBusiness && (
                 <>
                   <button
@@ -335,10 +356,10 @@ export default function ClientFormPage() {
                   >
                     Soumettre la fiche
                   </button>
-                </>
-              )}
-            </div>
+                  </>
+                )}
           </div>
+        </div>
         </div>
       </main>
     </div>

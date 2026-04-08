@@ -204,8 +204,8 @@ export default function BrouillonsPage() {
   };
 
   return (
-    <div style={{ backgroundColor: 'rgba(245,244,245,0.7)', minHeight: 'calc(100vh - 180px)' }}>
-      <div className="max-w-[1440px] mx-auto px-16 pt-6 pb-6">
+    <div style={{ backgroundColor: 'rgba(245,244,245,0.7)', minHeight: '100%' }}>
+      <div className="max-w-[1440px] mx-auto px-4 md:px-8 xl:px-12 2xl:px-16 pt-6 pb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1

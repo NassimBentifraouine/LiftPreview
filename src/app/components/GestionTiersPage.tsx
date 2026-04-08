@@ -1,12 +1,21 @@
 ﻿import { useState, useMemo, useCallback } from 'react';
-import { App } from 'antd';
+import { App, Popover, Select } from 'antd';
 import { useNavigate } from 'react-router';
 import DktIcon from './DktIcon';
 import CountryFlag from './CountryFlag';
 import { getCountryDisplayPartsFromName } from './countryUtils';
 import { useRoleAccess } from './RoleAccess';
 
-type TierStatus = 'pending_business' | 'pending_tresorerie' | 'validated' | 'rejected' | 'sap_rejected' | 'archived';
+type TierStatus =
+  | 'draft'
+  | 'pending_business'
+  | 'pending_treasury'
+  | 'validated'
+  | 'validated_business'
+  | 'validated_treasury'
+  | 'rejected'
+  | 'sap_rejected'
+  | 'archived';
 type SearchMode = 'name' | 'id';
 
 interface Tier {
@@ -16,35 +25,58 @@ interface Tier {
   dateMaj: string;
   pays: string;
   status: TierStatus;
+  createdAt: number;
+  updatedAt: number;
 }
 
 const statusConfig: Record<TierStatus, { label: string; icon: string; bg: string; border: string; color: string }> = {
-  pending_tresorerie: { label: 'Pending Trésorerie', icon: 'clock', bg: '#FFF7E6', border: '#FFD591', color: '#D46B08' },
-  validated: { label: 'Validated', icon: 'check-circle', bg: '#F6FFED', border: '#B7EB8F', color: '#389E0D' },
-  rejected: { label: 'Rejected', icon: 'close-circle', bg: '#FFF1F0', border: '#FFA39E', color: '#CF1322' },
-  sap_rejected: { label: 'SAP Rejected', icon: 'warning', bg: '#FFF1F0', border: '#FFA39E', color: '#CF1322' },
-  pending_business: { label: 'Pending Business', icon: 'bank', bg: '#FFFBE6', border: '#FFE58F', color: '#D4B106' },
-  archived: { label: 'Archived', icon: 'folder', bg: '#F5F5F5', border: '#D9D9D9', color: '#595959' },
+  draft: { label: 'BROUILLON', icon: 'document-text', bg: '#F5F5F5', border: '#D9D9D9', color: '#595959' },
+  pending_business: { label: 'EN ATTENTE MÉTIER', icon: 'clock', bg: '#FFF7E6', border: '#FFD591', color: '#D46B08' },
+  pending_treasury: { label: 'EN ATTENTE TRÉSORERIE', icon: 'bank', bg: '#E6F4FF', border: '#91CAFF', color: '#1677FF' },
+  validated: { label: 'VALIDÉ', icon: 'check-circle', bg: '#F6FFED', border: '#B7EB8F', color: '#389E0D' },
+  validated_business: { label: 'VALIDÉ MÉTIER', icon: 'check-circle', bg: '#F6FFED', border: '#B7EB8F', color: '#389E0D' },
+  validated_treasury: { label: 'VALIDÉ TRÉSORERIE', icon: 'check-circle', bg: '#E6F4FF', border: '#91CAFF', color: '#1677FF' },
+  rejected: { label: 'REJETÉ', icon: 'close-circle', bg: '#FFF1F0', border: '#FFA39E', color: '#CF1322' },
+  sap_rejected: { label: 'REJET SAP', icon: 'warning', bg: '#FFF1F0', border: '#FFA39E', color: '#CF1322' },
+  archived: { label: 'ARCHIVÉ', icon: 'folder', bg: '#F5F5F5', border: '#D9D9D9', color: '#595959' },
 };
 
 const liftDatabase: Record<string, { nom: string; status: TierStatus; pays: string }> = {
   '100001': { nom: 'Decathlon France SAS', status: 'validated', pays: 'France' },
   '100002': { nom: 'Decathlon Belgium NV', status: 'pending_business', pays: 'Belgique' },
-  '100003': { nom: 'Decathlon España S.A.', status: 'pending_tresorerie', pays: 'Espagne' },
-  '100004': { nom: 'Decathlon Italia SRL', status: 'rejected', pays: 'Italie' },
-  '100005': { nom: 'Decathlon Deutschland GmbH', status: 'sap_rejected', pays: 'Allemagne' },
+  '100003': { nom: 'Decathlon España S.A.', status: 'pending_treasury', pays: 'Espagne' },
+  '100004': { nom: 'Decathlon Italia SRL', status: 'draft', pays: 'Italie' },
+  '100005': { nom: 'Decathlon Deutschland GmbH', status: 'validated_business', pays: 'Allemagne' },
   '100006': { nom: 'Decathlon UK Ltd', status: 'archived', pays: 'Royaume-Uni' },
-  '100007': { nom: 'Decathlon Portugal Lda', status: 'rejected', pays: 'Portugal' },
+  '100007': { nom: 'Decathlon Portugal Lda', status: 'sap_rejected', pays: 'Portugal' },
+  '100008': { nom: 'Decathlon Poland Sp. z o.o.', status: 'validated_treasury', pays: 'Pologne' },
 };
 
-const mockTiers: Tier[] = Object.entries(liftDatabase).map(([id, data]) => ({
-  id,
-  nom: data.nom,
-  dateCreation: '3 Mars 2026 à 16h34',
-  dateMaj: '4 Mars 2026 à 16h34',
-  pays: data.pays,
-  status: data.status,
-}));
+const mockTiers: Tier[] = Object.entries(liftDatabase).map(([id, data]) => {
+  const index = Number(id.slice(-2));
+  const createdAt = new Date(2026, 2, 1 + (index % 9), 9 + (index % 5), 12).getTime();
+  const updatedAt = createdAt + (index % 5 + 1) * 24 * 60 * 60 * 1000;
+
+  const formatDate = (timestamp: number) =>
+    new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(timestamp)).replace(',', ' à');
+
+  return {
+    id,
+    nom: data.nom,
+    dateCreation: formatDate(createdAt),
+    dateMaj: formatDate(updatedAt),
+    pays: data.pays,
+    status: data.status,
+    createdAt,
+    updatedAt,
+  };
+});
 
 const searchModes: { id: SearchMode; label: string }[] = [
   { id: 'name', label: 'Recherche par nom' },
@@ -66,14 +98,22 @@ const searchById = (tiers: Tier[], query: string) => {
   return tiers.filter(tier => tier.id === query);
 };
 
+const ID_FULL_LENGTH = 6;
+type SortField = 'createdAt' | 'updatedAt';
+type SortOrder = 'asc' | 'desc';
+
 export default function GestionTiersPage() {
   const { message } = App.useApp();
   const { permissions } = useRoleAccess();
   const navigate = useNavigate();
-  const [tiers, setTiers] = useState<Tier[]>(mockTiers);
+  const [tiers] = useState<Tier[]>(mockTiers);
   const [searchMode, setSearchMode] = useState<SearchMode>('name');
   const [searchInput, setSearchInput] = useState('');
   const [committedIdQuery, setCommittedIdQuery] = useState('');
+  const [statusFilters, setStatusFilters] = useState<TierStatus[]>([]);
+  const [countryFilters, setCountryFilters] = useState<string[]>([]);
+  const [sortField, setSortField] = useState<SortField>('updatedAt');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [currentPage, setCurrentPage] = useState(1);
 
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -82,30 +122,40 @@ export default function GestionTiersPage() {
   const [importError, setImportError] = useState<ImportError>(null);
 
   const canCreateTier = permissions.canCreateTiers || permissions.isAdmin;
-  const canValidateBusiness = permissions.canValidateBusinessTiers || permissions.isAdmin;
-  const canValidateTreasury = permissions.canValidateTreasuryTiers;
-  const canViewArchived = permissions.canViewArchivedTiers;
   const canOpenArchived = permissions.canOpenArchivedTiers || permissions.isAdmin;
 
   const trimmedInput = searchInput.trim();
   const isNameSearchActive = searchMode === 'name' && trimmedInput.length >= 3;
   const isIdSearchActive = searchMode === 'id' && committedIdQuery.length > 0;
-  const isSearchActive = isNameSearchActive || isIdSearchActive;
+  const isSearchActive = isNameSearchActive || isIdSearchActive || statusFilters.length > 0 || countryFilters.length > 0;
 
-  const visibleTiers = useMemo(
-    () => (canViewArchived ? tiers : tiers.filter(tier => tier.status !== 'archived')),
-    [tiers, canViewArchived],
-  );
-
-  const filtered = useMemo(() => {
+  const searchedTiers = useMemo(() => {
     if (searchMode === 'name') {
-      if (!isNameSearchActive) return visibleTiers;
-      return searchByName(visibleTiers, trimmedInput);
+      if (!isNameSearchActive) return tiers;
+      return searchByName(tiers, trimmedInput);
     }
 
-    if (!isIdSearchActive) return visibleTiers;
-    return searchById(visibleTiers, committedIdQuery);
-  }, [searchMode, isNameSearchActive, isIdSearchActive, trimmedInput, committedIdQuery, visibleTiers]);
+    if (!isIdSearchActive) return tiers;
+    return searchById(tiers, committedIdQuery);
+  }, [searchMode, isNameSearchActive, isIdSearchActive, trimmedInput, committedIdQuery, tiers]);
+
+  const filtered = useMemo(() => {
+    let next = [...searchedTiers];
+
+    if (statusFilters.length > 0) {
+      next = next.filter(tier => statusFilters.includes(tier.status));
+    }
+    if (countryFilters.length > 0) {
+      next = next.filter(tier => countryFilters.includes(tier.pays));
+    }
+
+    next.sort((a, b) => {
+      const delta = a[sortField] - b[sortField];
+      return sortOrder === 'asc' ? delta : -delta;
+    });
+
+    return next;
+  }, [searchedTiers, statusFilters, countryFilters, sortField, sortOrder]);
 
   const handleModeChange = (mode: SearchMode) => {
     if (mode === searchMode) return;
@@ -117,7 +167,16 @@ export default function GestionTiersPage() {
 
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
-    if (searchMode === 'name') setCurrentPage(1);
+    if (searchMode === 'name') {
+      setCurrentPage(1);
+      return;
+    }
+
+    const normalized = value.trim();
+    if (normalized.length === ID_FULL_LENGTH) {
+      setCommittedIdQuery(normalized);
+      setCurrentPage(1);
+    }
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
@@ -133,41 +192,24 @@ export default function GestionTiersPage() {
     setCurrentPage(1);
   };
 
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(previous => (previous === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const sortIndicator = (field: SortField) => {
+    if (sortField !== field) return '↕';
+    return sortOrder === 'asc' ? '↑' : '↓';
+  };
+
   const handleOpenTier = (tier: Tier) => {
     const isArchivedLocked = tier.status === 'archived' && !canOpenArchived;
     if (isArchivedLocked) return;
     navigate(`/tiers/new?tierId=${tier.id}&mode=view`);
-  };
-
-  const handleEditTier = (tier: Tier) => {
-    if (!canCreateTier) return;
-    const isArchivedLocked = tier.status === 'archived' && !canOpenArchived;
-    if (isArchivedLocked) return;
-    navigate(`/tiers/new?tierId=${tier.id}`);
-  };
-
-  const handleBusinessDecision = (tierId: string, status: TierStatus) => {
-    setTiers(previous => previous.map(tier => (
-      tier.id === tierId ? { ...tier, status } : tier
-    )));
-
-    message.success(
-      status === 'validated'
-        ? `Tiers ${tierId} validé (mock).`
-        : `Tiers ${tierId} rejeté (mock).`,
-    );
-  };
-
-  const handleTreasuryDecision = (tierId: string, status: TierStatus) => {
-    setTiers(previous => previous.map(tier => (
-      tier.id === tierId ? { ...tier, status } : tier
-    )));
-
-    message.success(
-      status === 'validated'
-        ? `BANK_WALLET ${tierId} approuvé (mock).`
-        : `BANK_WALLET ${tierId} rejeté (mock).`,
-    );
   };
 
   const openImportModal = useCallback(() => {
@@ -209,13 +251,13 @@ export default function GestionTiersPage() {
         return;
       }
 
-      if (found.status === 'validated') {
+      if (found.status === 'validated' || found.status === 'validated_business' || found.status === 'validated_treasury') {
         setImportError({ type: 'already_validated', message: 'Existe déjà.' });
         setImportLoading(false);
         return;
       }
 
-      if (found.status === 'pending_business' || found.status === 'pending_tresorerie') {
+      if (found.status === 'pending_business' || found.status === 'pending_treasury') {
         setImportError({ type: 'pending', message: 'Tiers en cours de validation.' });
         setImportLoading(false);
         return;
@@ -242,10 +284,127 @@ export default function GestionTiersPage() {
   };
 
   const ls = { fontFamily: 'var(--font-family-text)' };
+  const statusFilterOptions = useMemo(
+    () => Object.entries(statusConfig).map(([value, cfg]) => ({ value, label: cfg.label })),
+    [],
+  );
+  const countryFilterOptions = useMemo(() => {
+    const countries = Array.from(new Set(tiers.map(tier => tier.pays))).sort((a, b) => a.localeCompare(b));
+    return countries.map(countryName => {
+      const country = getCountryDisplayPartsFromName(countryName);
+      return {
+        value: countryName,
+        label: (
+          <span className="inline-flex items-center gap-1.5">
+            {country.code && <CountryFlag code={country.code} size={14} />}
+            <span>{country.name}</span>
+          </span>
+        ),
+      };
+    });
+  }, [tiers]);
+  const statusFilterPanel = (
+    <div className="w-[300px]">
+      <p
+        className="m-0 mb-1"
+        style={{
+          fontFamily: 'var(--font-family-text)',
+          fontSize: '12px',
+          fontWeight: 'var(--font-weight-medium)',
+          color: 'var(--muted-foreground)',
+        }}
+      >
+        Filtrer par statut
+      </p>
+      <Select
+        mode="multiple"
+        allowClear
+        maxTagCount="responsive"
+        value={statusFilters}
+        onChange={(values) => {
+          setStatusFilters(values as TierStatus[]);
+          setCurrentPage(1);
+        }}
+        options={statusFilterOptions}
+        placeholder="Sélectionnez un ou plusieurs statuts"
+        style={{ width: '100%' }}
+      />
+      <div className="flex justify-end mt-3">
+        <button
+          onClick={() => {
+            setStatusFilters([]);
+            setCurrentPage(1);
+          }}
+          className="px-3 py-1.5"
+          style={{
+            backgroundColor: 'transparent',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-button)',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-family-text)',
+            fontSize: '12px',
+            fontWeight: 'var(--font-weight-medium)',
+            color: 'var(--foreground)',
+          }}
+        >
+          Réinitialiser
+        </button>
+      </div>
+    </div>
+  );
+  const countryFilterPanel = (
+    <div className="w-[300px]">
+      <p
+        className="m-0 mb-1"
+        style={{
+          fontFamily: 'var(--font-family-text)',
+          fontSize: '12px',
+          fontWeight: 'var(--font-weight-medium)',
+          color: 'var(--muted-foreground)',
+        }}
+      >
+        Filtrer par pays
+      </p>
+      <Select
+        mode="multiple"
+        allowClear
+        maxTagCount="responsive"
+        value={countryFilters}
+        onChange={(values) => {
+          setCountryFilters(values as string[]);
+          setCurrentPage(1);
+        }}
+        options={countryFilterOptions}
+        placeholder="Sélectionnez un ou plusieurs pays"
+        style={{ width: '100%' }}
+      />
+      <div className="flex justify-end mt-3">
+        <button
+          onClick={() => {
+            setCountryFilters([]);
+            setCurrentPage(1);
+          }}
+          className="px-3 py-1.5"
+          style={{
+            backgroundColor: 'transparent',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-button)',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-family-text)',
+            fontSize: '12px',
+            fontWeight: 'var(--font-weight-medium)',
+            color: 'var(--foreground)',
+          }}
+        >
+          Réinitialiser
+        </button>
+      </div>
+    </div>
+  );
 
   return (
-    <div style={{ backgroundColor: 'rgba(245,244,245,0.7)', minHeight: 'calc(100vh - 180px)' }}>
-      <div className="max-w-[1440px] mx-auto px-16 pt-10 pb-8">
+    <div style={{ backgroundColor: 'rgba(245,244,245,0.7)', minHeight: '100%' }}>
+      <div className="max-w-[1440px] mx-auto px-4 md:px-8 xl:px-12 2xl:px-16 pt-8 pb-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1
@@ -272,7 +431,6 @@ export default function GestionTiersPage() {
               Consultez et gérez tous vos tiers internes
             </p>
           </div>
-
           {canCreateTier && (
             <button
               onClick={openImportModal}
@@ -292,6 +450,7 @@ export default function GestionTiersPage() {
               Importer un tiers
             </button>
           )}
+
         </div>
 
         <div
@@ -336,37 +495,39 @@ export default function GestionTiersPage() {
               })}
             </div>
 
-            <div className="relative w-full max-w-[480px]">
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                <DktIcon name="search" size={18} color="var(--muted-foreground)" />
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="relative w-full max-w-[480px]">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <DktIcon name="search" size={18} color="var(--muted-foreground)" />
+                </div>
+                <input
+                  type="text"
+                  placeholder={searchMode === 'name' ? 'Rechercher un tiers par nom' : 'Rechercher un tiers par ID'}
+                  value={searchInput}
+                  onChange={e => handleSearchChange(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                  className="w-full pl-10 pr-10 py-2.5"
+                  style={{
+                    fontFamily: 'var(--font-family-text)',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 'var(--font-weight-normal)',
+                    color: 'var(--foreground)',
+                    backgroundColor: 'var(--input-background)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-button)',
+                    outline: 'none',
+                  }}
+                />
+                {searchInput && (
+                  <button
+                    onClick={clearSearch}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}
+                  >
+                    <DktIcon name="close" size={16} color="var(--muted-foreground)" />
+                  </button>
+                )}
               </div>
-              <input
-                type="text"
-                placeholder={searchMode === 'name' ? 'Rechercher un tiers par nom' : 'Rechercher un tiers par ID'}
-                value={searchInput}
-                onChange={e => handleSearchChange(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                className="w-full pl-10 pr-10 py-2.5"
-                style={{
-                  fontFamily: 'var(--font-family-text)',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 'var(--font-weight-normal)',
-                  color: 'var(--foreground)',
-                  backgroundColor: 'var(--input-background)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-button)',
-                  outline: 'none',
-                }}
-              />
-              {searchInput && (
-                <button
-                  onClick={clearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}
-                >
-                  <DktIcon name="close" size={16} color="var(--muted-foreground)" />
-                </button>
-              )}
             </div>
 
             <p
@@ -380,7 +541,7 @@ export default function GestionTiersPage() {
             >
               {searchMode === 'name'
                 ? 'La recherche se lance automatiquement à partir de 3 caractères'
-                : 'La recherche se lance en appuyant sur Entrée'}
+                : `La recherche se lance à ${ID_FULL_LENGTH} caractères ou en appuyant sur Entrée`}
             </p>
 
             {searchMode === 'id' && searchInput.trim() && searchInput.trim() !== committedIdQuery && (
@@ -393,7 +554,7 @@ export default function GestionTiersPage() {
                   color: 'var(--primary)',
                 }}
               >
-                Appuyez sur Entrée pour lancer cette recherche.
+                Appuyez sur Entrée ou saisissez {ID_FULL_LENGTH} caractères pour lancer cette recherche.
               </p>
             )}
 
@@ -411,19 +572,6 @@ export default function GestionTiersPage() {
                   {filtered.length} résultat{filtered.length !== 1 ? 's' : ''} trouvé{filtered.length !== 1 ? 's' : ''}
                 </p>
               </div>
-            )}
-            {!canViewArchived && tiers.some(tier => tier.status === 'archived') && (
-              <p
-                className="m-0 mt-1"
-                style={{
-                  fontFamily: 'var(--font-family-text)',
-                  fontSize: '12px',
-                  fontWeight: 'var(--font-weight-normal)',
-                  color: 'var(--muted-foreground)',
-                }}
-              >
-                Les tiers archivés sont masqués pour ce rôle.
-              </p>
             )}
           </div>
 
@@ -476,34 +624,98 @@ export default function GestionTiersPage() {
               )}
             </div>
           ) : (
-            <>
+            <div style={{ overflowX: 'auto' }}>
+              <div style={{ minWidth: '980px' }}>
               <div
-                className="grid px-6 py-3"
-                style={{ gridTemplateColumns: '80px 1fr 1fr 1fr 100px 180px 220px', borderBottom: '1px solid var(--border)' }}
+                className="grid px-6 py-3 items-center"
+                style={{
+                  gridTemplateColumns: '96px minmax(260px,1.4fr) 180px 220px 190px 190px',
+                  borderBottom: '1px solid var(--border)',
+                }}
               >
-                {['ID', 'Nom du tiers', 'Date de création ↓', 'Date de mise à jour ↓', 'Pays', 'État', 'Actions'].map(h => (
-                  <span
-                    key={h}
-                    style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}
+                <span
+                  style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}
+                >
+                  ID
+                </span>
+                <span
+                  style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-medium)', color: 'var(--muted-foreground)' }}
+                >
+                  Nom du tiers
+                </span>
+                <Popover trigger="click" placement="bottomLeft" content={countryFilterPanel}>
+                  <button
+                    className="flex items-center gap-1.5 p-0 bg-transparent border-0 w-fit"
+                    style={{
+                      cursor: 'pointer',
+                      ...ls,
+                      fontSize: '13px',
+                      fontWeight: 'var(--font-weight-medium)',
+                      color: countryFilters.length > 0 ? 'var(--primary)' : 'var(--muted-foreground)',
+                    }}
                   >
-                    {h}
-                  </span>
-                ))}
+                    Pays {countryFilters.length > 0 ? `(${countryFilters.length})` : ''}
+                    <DktIcon name="filter" size={13} color={countryFilters.length > 0 ? 'var(--primary)' : 'var(--muted-foreground)'} />
+                  </button>
+                </Popover>
+                <Popover trigger="click" placement="bottomLeft" content={statusFilterPanel}>
+                  <button
+                    className="flex items-center gap-1.5 p-0 bg-transparent border-0 w-fit"
+                    style={{
+                      cursor: 'pointer',
+                      ...ls,
+                      fontSize: '13px',
+                      fontWeight: 'var(--font-weight-medium)',
+                      color: statusFilters.length > 0 ? 'var(--primary)' : 'var(--muted-foreground)',
+                    }}
+                  >
+                    Statut {statusFilters.length > 0 ? `(${statusFilters.length})` : ''}
+                    <DktIcon name="filter" size={13} color={statusFilters.length > 0 ? 'var(--primary)' : 'var(--muted-foreground)'} />
+                  </button>
+                </Popover>
+                <button
+                  onClick={() => toggleSort('createdAt')}
+                  className="flex items-center gap-1 p-0 bg-transparent border-0 w-fit"
+                  style={{
+                    cursor: 'pointer',
+                    ...ls,
+                    fontSize: '13px',
+                    fontWeight: 'var(--font-weight-medium)',
+                    color: 'var(--muted-foreground)',
+                  }}
+                >
+                  Création {sortIndicator('createdAt')}
+                </button>
+                <button
+                  onClick={() => toggleSort('updatedAt')}
+                  className="flex items-center gap-1 p-0 bg-transparent border-0 w-fit"
+                  style={{
+                    cursor: 'pointer',
+                    ...ls,
+                    fontSize: '13px',
+                    fontWeight: 'var(--font-weight-medium)',
+                    color: 'var(--muted-foreground)',
+                  }}
+                >
+                  Mise à jour {sortIndicator('updatedAt')}
+                </button>
               </div>
 
               {filtered.map((tier, i) => {
                 const cfg = statusConfig[tier.status];
                 const isArchivedLocked = tier.status === 'archived' && !canOpenArchived;
+                const country = getCountryDisplayPartsFromName(tier.pays);
+
                 return (
                   <div
                     key={`${tier.id}-${i}`}
                     onClick={() => handleOpenTier(tier)}
                     className="grid px-6 py-3 items-center"
                     style={{
-                      gridTemplateColumns: '80px 1fr 1fr 1fr 100px 180px 220px',
+                      gridTemplateColumns: '96px minmax(260px,1.4fr) 180px 220px 190px 190px',
                       borderBottom: '1px solid var(--border)',
-                      backgroundColor: isArchivedLocked ? '#f6f6f6' : 'transparent',
-                      opacity: isArchivedLocked ? 0.6 : 1,
+                      backgroundColor: isArchivedLocked ? '#F5F5F5' : 'transparent',
+                      opacity: isArchivedLocked ? 0.62 : 1,
                       cursor: isArchivedLocked ? 'not-allowed' : 'pointer',
                     }}
                   >
@@ -519,19 +731,25 @@ export default function GestionTiersPage() {
                     >
                       {tier.id}
                     </span>
-                    <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{tier.nom}</span>
-                    <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{tier.dateCreation}</span>
-                    <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)' }}>{tier.dateMaj}</span>
-                    <span style={{ ...ls, fontSize: 'var(--text-sm)', color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--primary)' }}>
-                      {(() => {
-                        const country = getCountryDisplayPartsFromName(tier.pays);
-                        return (
-                          <>
-                            {country.code && <CountryFlag code={country.code} size={14} style={{ marginRight: '6px' }} />}
-                            {country.name}
-                          </>
-                        );
-                      })()}
+                    <span
+                      style={{
+                        ...ls,
+                        fontSize: 'var(--text-sm)',
+                        color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)',
+                      }}
+                    >
+                      {tier.nom}
+                    </span>
+                    <span
+                      className="inline-flex items-center gap-1.5"
+                      style={{
+                        ...ls,
+                        fontSize: 'var(--text-sm)',
+                        color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--primary)',
+                      }}
+                    >
+                      {country.code && <CountryFlag code={country.code} size={14} />}
+                      {country.name}
                     </span>
                     <span
                       className="px-3 py-1 rounded-full inline-flex items-center gap-1.5 w-fit"
@@ -547,99 +765,29 @@ export default function GestionTiersPage() {
                       <DktIcon name={cfg.icon} size={14} color={cfg.color} />
                       {cfg.label}
                     </span>
-                    <div className="flex items-center gap-2">
-                      {canValidateBusiness && tier.status === 'pending_business' && (
-                        <>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleBusinessDecision(tier.id, 'validated');
-                            }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
-                            title="Valider le bloc business"
-                          >
-                            <DktIcon name="check-circle" size={18} color="#389E0D" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleBusinessDecision(tier.id, 'rejected');
-                            }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
-                            title="Rejeter le bloc business"
-                          >
-                            <DktIcon name="close-circle" size={18} color="#CF1322" />
-                          </button>
-                        </>
-                      )}
-
-                      {canValidateTreasury && tier.status === 'pending_tresorerie' && (
-                        <>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTreasuryDecision(tier.id, 'validated');
-                            }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
-                            title="Approuver BANK_WALLET"
-                          >
-                            <DktIcon name="bank" size={18} color="#389E0D" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTreasuryDecision(tier.id, 'rejected');
-                            }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
-                            title="Rejeter BANK_WALLET"
-                          >
-                            <DktIcon name="close-circle" size={18} color="#CF1322" />
-                          </button>
-                        </>
-                      )}
-
-                      <button
-                        disabled={isArchivedLocked}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenTier(tier);
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: isArchivedLocked ? 'not-allowed' : 'pointer',
-                          padding: '4px',
-                          opacity: isArchivedLocked ? 0.5 : 1,
-                        }}
-                        title="Consulter"
-                      >
-                        <DktIcon name="eye" size={18} color="var(--muted-foreground)" />
-                      </button>
-
-                      {canCreateTier && (
-                        <button
-                          disabled={isArchivedLocked}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditTier(tier);
-                          }}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: isArchivedLocked ? 'not-allowed' : 'pointer',
-                            padding: '4px',
-                            opacity: isArchivedLocked ? 0.5 : 1,
-                          }}
-                          title="Modifier"
-                        >
-                          <DktIcon name="edit" size={18} color="var(--primary)" />
-                        </button>
-                      )}
-                    </div>
+                    <span
+                      style={{
+                        ...ls,
+                        fontSize: 'var(--text-sm)',
+                        color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)',
+                      }}
+                    >
+                      {tier.dateCreation}
+                    </span>
+                    <span
+                      style={{
+                        ...ls,
+                        fontSize: 'var(--text-sm)',
+                        color: isArchivedLocked ? 'var(--muted-foreground)' : 'var(--foreground)',
+                      }}
+                    >
+                      {tier.dateMaj}
+                    </span>
                   </div>
                 );
               })}
-            </>
+              </div>
+            </div>
           )}
         </div>
 
@@ -774,7 +922,7 @@ export default function GestionTiersPage() {
                   color: 'var(--foreground)',
                 }}
               >
-                Numéro du tiers <span style={{ color: 'var(--destructive)' }}>*</span>
+                Saisissez le numéro du tiers <span style={{ color: 'var(--destructive)' }}>*</span>
               </label>
 
               <div className="relative">
