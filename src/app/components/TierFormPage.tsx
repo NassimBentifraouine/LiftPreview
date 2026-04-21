@@ -25,32 +25,131 @@ import { maskIban, useRoleAccess } from './RoleAccess';
 const { Dragger } = Upload;
 
 type FormStatus = 'draft' | 'pending_business' | null;
-type HistoryAction = 'Update' | 'Validate' | 'Reject';
+type HistoryAction = 'Create' | 'Update' | 'Validate' | 'Reject';
+type HistoryFilter = 'all' | 'Create' | 'Update' | 'workflow';
+type HistorySection = 'Identité' | 'Coordonnées' | 'Finance' | 'Périmètre' | 'Workflow';
 
-interface HistoryEntry {
-  id: string;
-  date: string;
-  user: string;
-  action: HistoryAction;
+interface HistoryChange {
   field: string;
   oldValue: string;
   newValue: string;
 }
 
+interface HistoryEntry {
+  id: string;
+  date: string;
+  user: string;
+  userId: string;
+  tierId: string;
+  action: HistoryAction;
+  changes: HistoryChange[];
+}
+
 const mockHistoryByTier: Record<string, Omit<HistoryEntry, 'id'>[]> = {
   '100001': [
-    { date: '15/12 10:00', user: 'Chadi Martin', action: 'Update', field: 'IBAN', oldValue: 'FR7612345678901234567890189', newValue: 'FR7645678901234567890189123' },
-    { date: '14/12 15:42', user: 'Sofia Bernard', action: 'Update', field: 'Status', oldValue: 'DRAFT', newValue: 'PENDING BUSINESS' },
-    { date: '13/12 09:18', user: 'Admin LIFT', action: 'Validate', field: 'Status', oldValue: 'PENDING BUSINESS', newValue: 'VALIDATED' },
+    {
+      date: '18/04/2026 • 10:00:14',
+      user: 'Chadi Martin',
+      userId: 'sso_cmartin',
+      tierId: '100001',
+      action: 'Update',
+      changes: [
+        { field: 'IBAN', oldValue: 'FR7612345678901234567890189', newValue: 'FR7645678901234567890189123' },
+        { field: 'E-mail général', oldValue: 'contact.fr@decathlon.com', newValue: 'tiers.france@decathlon.com' },
+        { field: 'Téléphone général', oldValue: '+33 1 23 45 67 89', newValue: '+33 1 39 45 67 89' },
+        { field: 'Adresse siège', oldValue: '4 Boulevard de Mons, 59650 Villeneuve-d\'Ascq', newValue: '6 Boulevard de Mons, 59650 Villeneuve-d\'Ascq' },
+      ],
+    },
+    {
+      date: '17/04/2026 • 15:42:09',
+      user: 'Sofia Bernard',
+      userId: 'sso_sbernard',
+      tierId: '100001',
+      action: 'Update',
+      changes: [
+        { field: 'Statut', oldValue: 'DRAFT', newValue: 'PENDING BUSINESS' },
+        { field: 'Pays d’opération', oldValue: 'France', newValue: 'France, Belgique' },
+      ],
+    },
+    {
+      date: '16/04/2026 • 09:18:27',
+      user: 'Admin LIFT',
+      userId: 'sso_admin_lift',
+      tierId: '100001',
+      action: 'Validate',
+      changes: [{ field: 'Statut', oldValue: 'PENDING BUSINESS', newValue: 'VALIDATED' }],
+    },
+    {
+      date: '15/04/2026 • 08:04:11',
+      user: 'Admin LIFT',
+      userId: 'sso_admin_lift',
+      tierId: '100001',
+      action: 'Create',
+      changes: [
+        { field: 'Raison sociale', oldValue: '-', newValue: 'Decathlon France SAS' },
+        { field: 'Pays du tiers', oldValue: '-', newValue: 'France' },
+        { field: 'Tax ID', oldValue: '-', newValue: 'FR12345678901' },
+        { field: 'Rôle AP/AR', oldValue: '-', newValue: 'AP + AR' },
+      ],
+    },
   ],
   '100002': [
-    { date: '12/12 11:12', user: 'Martin Dupuis', action: 'Update', field: 'Tax ID', oldValue: 'BE0123456789', newValue: 'BE1123456789' },
-    { date: '12/12 11:05', user: 'Martin Dupuis', action: 'Update', field: 'General Email', oldValue: 'contact.old@decathlon.com', newValue: 'contact.be@decathlon.com' },
-    { date: '12/12 10:50', user: 'Admin LIFT', action: 'Reject', field: 'Status', oldValue: 'PENDING BUSINESS', newValue: 'REJECTED' },
+    {
+      date: '12/04/2026 • 11:12:45',
+      user: 'Martin Dupuis',
+      userId: 'sso_mdupuis',
+      tierId: '100002',
+      action: 'Update',
+      changes: [
+        { field: 'Tax ID', oldValue: 'BE0123456789', newValue: 'BE1123456789' },
+        { field: 'E-mail général', oldValue: 'contact.old@decathlon.com', newValue: 'contact.be@decathlon.com' },
+        { field: 'Code postal', oldValue: '1050', newValue: '1060' },
+      ],
+    },
+    {
+      date: '12/04/2026 • 10:50:02',
+      user: 'Admin LIFT',
+      userId: 'sso_admin_lift',
+      tierId: '100002',
+      action: 'Reject',
+      changes: [{ field: 'Statut', oldValue: 'PENDING BUSINESS', newValue: 'REJECTED' }],
+    },
+    {
+      date: '10/04/2026 • 14:27:18',
+      user: 'Admin LIFT',
+      userId: 'sso_admin_lift',
+      tierId: '100002',
+      action: 'Create',
+      changes: [
+        { field: 'Raison sociale', oldValue: '-', newValue: 'Decathlon Belgium NV' },
+        { field: 'Pays du tiers', oldValue: '-', newValue: 'Belgique' },
+        { field: 'IBAN', oldValue: '-', newValue: 'BE62510007547061' },
+      ],
+    },
   ],
   default: [
-    { date: '11/12 16:20', user: 'Admin LIFT', action: 'Update', field: 'Status', oldValue: 'DRAFT', newValue: 'PENDING BUSINESS' },
-    { date: '11/12 16:05', user: 'Admin LIFT', action: 'Update', field: 'IBAN', oldValue: 'FR7611111111111111111111111', newValue: 'FR7622222222222222222222222' },
+    {
+      date: '11/04/2026 • 16:20:08',
+      user: 'Admin LIFT',
+      userId: 'sso_admin_lift',
+      tierId: 'preview',
+      action: 'Update',
+      changes: [
+        { field: 'Statut', oldValue: 'DRAFT', newValue: 'PENDING BUSINESS' },
+        { field: 'IBAN', oldValue: 'FR7611111111111111111111111', newValue: 'FR7622222222222222222222222' },
+      ],
+    },
+    {
+      date: '11/04/2026 • 15:58:31',
+      user: 'Admin LIFT',
+      userId: 'sso_admin_lift',
+      tierId: 'preview',
+      action: 'Create',
+      changes: [
+        { field: 'Raison sociale', oldValue: '-', newValue: 'Nouveau tiers SAP' },
+        { field: 'Pays du tiers', oldValue: '-', newValue: 'France' },
+      ],
+    },
   ],
 };
 
@@ -296,9 +395,11 @@ const getCountryLabel = (code?: string) => countryCatalog.find(country => countr
 const formatHistoryDate = (date: Date) => {
   const day = `${date.getDate()}`.padStart(2, '0');
   const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const year = date.getFullYear();
   const hours = `${date.getHours()}`.padStart(2, '0');
   const minutes = `${date.getMinutes()}`.padStart(2, '0');
-  return `${day}/${month} ${hours}:${minutes}`;
+  const seconds = `${date.getSeconds()}`.padStart(2, '0');
+  return `${day}/${month}/${year} • ${hours}:${minutes}:${seconds}`;
 };
 
 const isSensitiveHistoryField = (field: string) => field.trim().toLowerCase() === 'iban';
@@ -341,6 +442,115 @@ const statusConfig: Record<Exclude<FormStatus, null>, { label: string; color: st
   },
 };
 
+const historyActionConfig: Record<HistoryAction, { label: string; color: string; bg: string; border: string; icon: ReactNode }> = {
+  Create: {
+    label: 'Création',
+    color: '#08979C',
+    bg: '#E6FFFB',
+    border: '#87E8DE',
+    icon: <FileTextOutlined />,
+  },
+  Update: {
+    label: 'Modification',
+    color: '#3643BA',
+    bg: '#EEF1FF',
+    border: '#C7D2FE',
+    icon: <InfoCircleOutlined />,
+  },
+  Validate: {
+    label: 'Validation',
+    color: '#389E0D',
+    bg: '#F6FFED',
+    border: '#B7EB8F',
+    icon: <CheckCircleFilled />,
+  },
+  Reject: {
+    label: 'Rejet',
+    color: '#CF1322',
+    bg: '#FFF1F0',
+    border: '#FFA39E',
+    icon: <DeleteOutlined />,
+  },
+};
+
+const historySectionConfig: Record<HistorySection, { color: string; bg: string; border: string }> = {
+  Identité: {
+    color: '#1D39C4',
+    bg: '#F0F5FF',
+    border: '#ADC6FF',
+  },
+  Coordonnées: {
+    color: '#531DAB',
+    bg: '#F9F0FF',
+    border: '#D3ADF7',
+  },
+  Finance: {
+    color: '#08979C',
+    bg: '#E6FFFB',
+    border: '#87E8DE',
+  },
+  'Périmètre': {
+    color: '#D46B08',
+    bg: '#FFF7E6',
+    border: '#FFD591',
+  },
+  Workflow: {
+    color: '#CF1322',
+    bg: '#FFF1F0',
+    border: '#FFA39E',
+  },
+};
+
+const formatChangeCount = (count: number) => `${count} champ${count > 1 ? 's' : ''}`;
+
+const getHistoryDateParts = (value: string) => {
+  const [datePart, timePart] = value.split('•').map(part => part.trim());
+  return {
+    dateLabel: datePart || value,
+    timeLabel: timePart || '',
+  };
+};
+
+const isWorkflowAction = (action: HistoryAction) => action === 'Validate' || action === 'Reject';
+
+const getHistorySection = (field: string): HistorySection => {
+  const normalized = field.trim().toLowerCase();
+
+  if (normalized.includes('statut') || normalized.includes('wallet')) return 'Workflow';
+  if (normalized.includes('iban') || normalized.includes('swift') || normalized.includes('tax')) return 'Finance';
+  if (
+    normalized.includes('mail')
+    || normalized.includes('email')
+    || normalized.includes('téléphone')
+    || normalized.includes('phone')
+    || normalized.includes('adresse')
+    || normalized.includes('postal')
+  ) {
+    return 'Coordonnées';
+  }
+  if (
+    normalized.includes('rôle')
+    || normalized.includes('role')
+    || normalized.includes('pays d’opération')
+    || normalized.includes("pays d'operation")
+    || normalized.includes('operation')
+  ) {
+    return 'Périmètre';
+  }
+
+  return 'Identité';
+};
+
+const getHistorySections = (entry: HistoryEntry) =>
+  Array.from(new Set(entry.changes.map(change => getHistorySection(change.field))));
+
+const getHistorySummary = (entry: HistoryEntry) => {
+  if (entry.action === 'Create') return 'Création initiale de la fiche tiers';
+  if (entry.action === 'Validate') return 'Validation du formulaire avec changement de statut';
+  if (entry.action === 'Reject') return 'Rejet du formulaire avec changement de statut';
+  return `${formatChangeCount(entry.changes.length)} mis à jour sur le formulaire`;
+};
+
 export default function TierFormPage() {
   const [form] = Form.useForm();
   const { message } = App.useApp();
@@ -367,6 +577,8 @@ export default function TierFormPage() {
   const [status, setStatus] = useState<FormStatus>(null);
   const [files, setFiles] = useState<any[]>([]);
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
+  const [expandedHistoryEntries, setExpandedHistoryEntries] = useState<Record<string, boolean>>({});
 
   const [bankModalOpen, setBankModalOpen] = useState(false);
   const [newBankName, setNewBankName] = useState('');
@@ -398,6 +610,41 @@ export default function TierFormPage() {
     () => countryOptions.filter(option => !selectedCountries.includes(option.value)),
     [selectedCountries],
   );
+  const totalHistoryChanges = useMemo(
+    () => historyEntries.reduce((sum, entry) => sum + entry.changes.length, 0),
+    [historyEntries],
+  );
+  const visibleHistoryEntries = useMemo(() => {
+    if (historyFilter === 'all') return historyEntries;
+    if (historyFilter === 'workflow') return historyEntries.filter(entry => isWorkflowAction(entry.action));
+    return historyEntries.filter(entry => entry.action === historyFilter);
+  }, [historyEntries, historyFilter]);
+  const historyFilterOptions = useMemo(
+    () => [
+      { key: 'all' as const, label: 'Tout', count: historyEntries.length },
+      { key: 'Create' as const, label: 'Créations', count: historyEntries.filter(entry => entry.action === 'Create').length },
+      { key: 'Update' as const, label: 'Modifs', count: historyEntries.filter(entry => entry.action === 'Update').length },
+      { key: 'workflow' as const, label: 'Workflow', count: historyEntries.filter(entry => isWorkflowAction(entry.action)).length },
+    ],
+    [historyEntries],
+  );
+  const groupedVisibleHistoryEntries = useMemo(() => {
+    const groups: { dateLabel: string; entries: HistoryEntry[] }[] = [];
+
+    visibleHistoryEntries.forEach(entry => {
+      const { dateLabel } = getHistoryDateParts(entry.date);
+      const lastGroup = groups[groups.length - 1];
+
+      if (lastGroup && lastGroup.dateLabel === dateLabel) {
+        lastGroup.entries.push(entry);
+        return;
+      }
+
+      groups.push({ dateLabel, entries: [entry] });
+    });
+
+    return groups;
+  }, [visibleHistoryEntries]);
 
   const computeCompletedFields = useCallback((values: Record<string, unknown>) => {
     const next = new Set<string>();
@@ -454,20 +701,20 @@ export default function TierFormPage() {
     );
   }, [form]);
 
-  const appendHistoryEntry = useCallback((entry: Omit<HistoryEntry, 'id' | 'date'> & { date?: string }) => {
+  const appendHistoryEntry = useCallback((entry: Omit<HistoryEntry, 'id' | 'date' | 'tierId'> & { date?: string; tierId?: string }) => {
     setHistoryEntries(previous => [
       {
         id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         date: entry.date || formatHistoryDate(new Date()),
         user: entry.user,
+        userId: entry.userId,
+        tierId: entry.tierId || tierId,
         action: entry.action,
-        field: entry.field,
-        oldValue: entry.oldValue,
-        newValue: entry.newValue,
+        changes: entry.changes,
       },
       ...previous,
     ]);
-  }, []);
+  }, [tierId]);
 
   useEffect(() => {
     const prefill = mockTierById[tierId] || {
@@ -516,9 +763,11 @@ export default function TierFormPage() {
 
     setFiles([]);
     setStatus(null);
+    setExpandedHistoryEntries({});
     const initialHistory = (mockHistoryByTier[tierId] || mockHistoryByTier.default).map((entry, index) => ({
       id: `init-${index}`,
       ...entry,
+      tierId: entry.tierId === 'preview' ? tierId : entry.tierId,
     }));
     setHistoryEntries(initialHistory);
     setCompletedFields(computeCompletedFields(form.getFieldsValue(true) as Record<string, unknown>));
@@ -694,10 +943,9 @@ export default function TierFormPage() {
     setStatus('draft');
     appendHistoryEntry({
       user: 'Current User',
+      userId: 'sso_current_user',
       action: 'Update',
-      field: 'Status',
-      oldValue: previousStatus,
-      newValue: 'DRAFT',
+      changes: [{ field: 'Statut', oldValue: previousStatus, newValue: 'DRAFT' }],
     });
     message.success('Dossier sauvegarde avec le statut DRAFT.');
   };
@@ -714,10 +962,9 @@ export default function TierFormPage() {
       setStatus('pending_business');
       appendHistoryEntry({
         user: 'Current User',
-        action: 'Validate',
-        field: 'Status',
-        oldValue: previousStatus,
-        newValue: 'PENDING BUSINESS',
+        userId: 'sso_current_user',
+        action: 'Update',
+        changes: [{ field: 'Statut', oldValue: previousStatus, newValue: 'PENDING BUSINESS' }],
       });
       message.success('Dossier soumis. Statut : PENDING BUSINESS.');
     } catch {
@@ -731,10 +978,9 @@ export default function TierFormPage() {
 
     appendHistoryEntry({
       user: 'Business Validator',
+      userId: 'sso_business_validator',
       action,
-      field: 'Status',
-      oldValue: previousStatus,
-      newValue: nextStatus,
+      changes: [{ field: 'Statut', oldValue: previousStatus, newValue: nextStatus }],
     });
 
     message.success(
@@ -747,10 +993,15 @@ export default function TierFormPage() {
   const handleTreasuryValidation = (action: 'Validate' | 'Reject') => {
     appendHistoryEntry({
       user: 'Trésorerie Validator',
+      userId: 'sso_tresorerie_validator',
       action,
-      field: 'BANK_WALLET',
-      oldValue: 'PENDING TRESORERIE',
-      newValue: action === 'Validate' ? 'APPROVED' : 'REJECTED',
+      changes: [
+        {
+          field: 'BANK_WALLET',
+          oldValue: 'PENDING TRESORERIE',
+          newValue: action === 'Validate' ? 'APPROVED' : 'REJECTED',
+        },
+      ],
     });
 
     message.success(
@@ -2128,95 +2379,497 @@ export default function TierFormPage() {
                         </p>
                       </div>
                     ) : (
-                      <div
-                        style={{
-                          border: '1px solid var(--border)',
-                          borderRadius: 'var(--radius)',
-                          overflow: 'hidden',
-                        }}
-                      >
+                      <div className="space-y-4">
                         <div
-                          className="grid px-4 py-3"
+                          className="rounded-xl p-4"
                           style={{
-                            gridTemplateColumns: '120px 170px 110px 140px 1fr 1fr',
-                            backgroundColor: 'var(--input-background)',
-                            borderBottom: '1px solid var(--border)',
+                            backgroundColor: '#FCFCFD',
+                            border: '1px solid var(--border)',
                           }}
                         >
-                          {['Date', 'User', 'Action', 'Champ', 'Ancienne Valeur', 'Nouvelle Valeur'].map(column => (
-                            <span
-                              key={column}
-                              style={{
-                                ...ls,
-                                fontSize: '12px',
-                                fontWeight: 'var(--font-weight-semibold)',
-                                color: 'var(--muted-foreground)',
-                              }}
-                            >
-                              {column}
-                            </span>
-                          ))}
-                        </div>
-
-                        {historyEntries.map((entry, index) => {
-                          const sensitiveField = isSensitiveHistoryField(entry.field);
-                          const oldValue = maskHistoryValue(entry.field, entry.oldValue);
-                          const newValue = maskHistoryValue(entry.field, entry.newValue);
-                          const actionColor =
-                            entry.action === 'Validate'
-                              ? '#389E0D'
-                              : entry.action === 'Reject'
-                              ? '#CF1322'
-                              : '#3643ba';
-
-                          return (
-                            <div
-                              key={entry.id}
-                              className="grid px-4 py-3 items-center"
-                              style={{
-                                gridTemplateColumns: '120px 170px 110px 140px 1fr 1fr',
-                                borderBottom: index === historyEntries.length - 1 ? 'none' : '1px solid var(--border)',
-                              }}
-                            >
-                              <span style={{ ...ls, fontSize: '13px', color: 'var(--foreground)' }}>{entry.date}</span>
-                              <span style={{ ...ls, fontSize: '13px', color: 'var(--foreground)' }}>{entry.user}</span>
-                              <span
-                                className="px-2 py-0.5 rounded inline-flex items-center w-fit"
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <SafetyOutlined style={{ color: 'var(--primary)', fontSize: '14px' }} />
+                                <span
+                                  style={{
+                                    ...ls,
+                                    fontSize: '12px',
+                                    fontWeight: 'var(--font-weight-semibold)',
+                                    color: 'var(--primary)',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
+                                  }}
+                                >
+                                  Audit Trail Consolidé
+                                </span>
+                              </div>
+                              <p
+                                className="m-0 mt-1"
                                 style={{
-                                  backgroundColor: `${actionColor}14`,
-                                  border: `1px solid ${actionColor}33`,
+                                  ...ls,
+                                  fontSize: '13px',
+                                  color: 'var(--muted-foreground)',
+                                  fontWeight: 'var(--font-weight-normal)',
+                                }}
+                              >
+                                1 ligne = 1 intervention sur le formulaire
+                              </p>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              <span
+                                className="px-2.5 py-1 rounded-full"
+                                style={{
                                   ...ls,
                                   fontSize: '12px',
-                                  fontWeight: 'var(--font-weight-medium)',
-                                  color: actionColor,
+                                  color: 'var(--foreground)',
+                                  backgroundColor: 'var(--card)',
+                                  border: '1px solid var(--border)',
                                 }}
                               >
-                                {entry.action}
-                              </span>
-                              <span style={{ ...ls, fontSize: '13px', color: 'var(--foreground)' }}>{entry.field}</span>
-                              <span
-                                style={{
-                                  ...ls,
-                                  fontSize: '13px',
-                                  color: sensitiveField ? 'var(--muted-foreground)' : 'var(--foreground)',
-                                  fontFamily: sensitiveField ? 'var(--font-family-display)' : 'var(--font-family-text)',
-                                }}
-                              >
-                                {oldValue}
+                                {visibleHistoryEntries.length}/{historyEntries.length} événements
                               </span>
                               <span
+                                className="px-2.5 py-1 rounded-full"
                                 style={{
                                   ...ls,
-                                  fontSize: '13px',
-                                  color: sensitiveField ? 'var(--muted-foreground)' : 'var(--foreground)',
-                                  fontFamily: sensitiveField ? 'var(--font-family-display)' : 'var(--font-family-text)',
+                                  fontSize: '12px',
+                                  color: 'var(--foreground)',
+                                  backgroundColor: 'var(--card)',
+                                  border: '1px solid var(--border)',
                                 }}
                               >
-                                {newValue}
+                                {totalHistoryChanges} changements
                               </span>
                             </div>
-                          );
-                        })}
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            {historyFilterOptions.map(option => {
+                              const isActive = historyFilter === option.key;
+
+                              return (
+                                <button
+                                  key={option.key}
+                                  type="button"
+                                  onClick={() => setHistoryFilter(option.key)}
+                                  className="px-3 py-1.5 rounded-full"
+                                  style={{
+                                    border: isActive ? '1px solid var(--primary)' : '1px solid var(--border)',
+                                    backgroundColor: isActive ? 'rgba(54,67,186,0.08)' : 'var(--card)',
+                                    color: isActive ? 'var(--primary)' : 'var(--foreground)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    ...ls,
+                                    fontSize: '12px',
+                                    fontWeight: 'var(--font-weight-semibold)',
+                                  }}
+                                >
+                                  {option.label} · {option.count}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {visibleHistoryEntries.length === 0 ? (
+                          <div
+                            className="rounded-xl p-5"
+                            style={{
+                              backgroundColor: '#FCFCFD',
+                              border: '1px solid var(--border)',
+                            }}
+                          >
+                            <p
+                              className="m-0"
+                              style={{
+                                fontFamily: 'var(--font-family-display)',
+                                fontSize: 'var(--text-base)',
+                                fontWeight: 'var(--font-weight-semibold)',
+                                color: 'var(--foreground)',
+                              }}
+                            >
+                              Aucun événement pour ce filtre
+                            </p>
+                            <p
+                              className="m-0 mt-1"
+                              style={{
+                                ...ls,
+                                color: 'var(--muted-foreground)',
+                                fontWeight: 'var(--font-weight-normal)',
+                              }}
+                            >
+                              Repassez sur “Tout” pour retrouver l’intégralité de l’historique.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {groupedVisibleHistoryEntries.map(group => (
+                              <div
+                                key={group.dateLabel}
+                                className="rounded-xl overflow-hidden"
+                                style={{
+                                  border: '1px solid var(--border)',
+                                  backgroundColor: '#FCFCFD',
+                                }}
+                              >
+                                <div
+                                  className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+                                  style={{
+                                    backgroundColor: 'rgba(15, 23, 42, 0.02)',
+                                    borderBottom: '1px solid var(--border)',
+                                  }}
+                                >
+                                  <p
+                                    className="m-0"
+                                    style={{
+                                      fontFamily: 'var(--font-family-display)',
+                                      fontSize: 'var(--text-base)',
+                                      fontWeight: 'var(--font-weight-semibold)',
+                                      color: 'var(--foreground)',
+                                    }}
+                                  >
+                                    {group.dateLabel}
+                                  </p>
+                                  <span
+                                    className="px-2.5 py-1 rounded-full"
+                                    style={{
+                                      ...ls,
+                                      fontSize: '12px',
+                                      color: 'var(--muted-foreground)',
+                                      backgroundColor: 'var(--card)',
+                                      border: '1px solid var(--border)',
+                                    }}
+                                  >
+                                    {group.entries.length} événement{group.entries.length > 1 ? 's' : ''}
+                                  </span>
+                                </div>
+
+                                <div>
+                                  {group.entries.map((entry, index) => {
+                                    const actionStyle = historyActionConfig[entry.action];
+                                    const sections = getHistorySections(entry);
+                                    const previewFields = entry.changes.slice(0, 3).map(change => change.field).join(', ');
+                                    const hiddenChanges = Math.max(0, entry.changes.length - 3);
+                                    const groupedChanges = sections.map(section => ({
+                                      section,
+                                      changes: entry.changes.filter(change => getHistorySection(change.field) === section),
+                                    }));
+                                    const { timeLabel } = getHistoryDateParts(entry.date);
+
+                                    return (
+                                      <div
+                                        key={entry.id}
+                                        style={{
+                                          borderTop: index === 0 ? 'none' : '1px solid var(--border)',
+                                        }}
+                                      >
+                                        <Collapse
+                                          activeKey={expandedHistoryEntries[entry.id] ? [entry.id] : []}
+                                          ghost
+                                          expandIconPosition="end"
+                                          onChange={keys => {
+                                            const normalizedKeys = (Array.isArray(keys) ? keys : [keys])
+                                              .filter((key): key is string | number => key !== undefined && key !== null)
+                                              .map(key => `${key}`);
+
+                                            setExpandedHistoryEntries(previous => ({
+                                              ...previous,
+                                              [entry.id]: normalizedKeys.includes(entry.id),
+                                            }));
+                                          }}
+                                          style={{ backgroundColor: 'transparent' }}
+                                          items={[
+                                            {
+                                              key: entry.id,
+                                              label: (
+                                                <div className="pr-4">
+                                                  <div className="grid gap-3 md:grid-cols-[72px_190px_150px_minmax(0,1fr)] items-center">
+                                                    <div>
+                                                      <p
+                                                        className="m-0"
+                                                        style={{
+                                                          fontFamily: 'var(--font-family-display)',
+                                                          fontSize: '16px',
+                                                          fontWeight: 'var(--font-weight-semibold)',
+                                                          color: 'var(--foreground)',
+                                                          lineHeight: '1.1',
+                                                        }}
+                                                      >
+                                                        {timeLabel || '--:--'}
+                                                      </p>
+                                                    </div>
+
+                                                    <div className="min-w-0">
+                                                      <p
+                                                        className="m-0 truncate"
+                                                        style={{
+                                                          fontFamily: 'var(--font-family-display)',
+                                                          fontSize: 'var(--text-base)',
+                                                          fontWeight: 'var(--font-weight-semibold)',
+                                                          color: 'var(--foreground)',
+                                                        }}
+                                                        title={entry.user}
+                                                      >
+                                                        {entry.user}
+                                                      </p>
+                                                      <p
+                                                        className="m-0 mt-0.5 truncate"
+                                                        style={{
+                                                          ...ls,
+                                                          fontSize: '12px',
+                                                          color: 'var(--muted-foreground)',
+                                                          fontWeight: 'var(--font-weight-normal)',
+                                                        }}
+                                                        title={entry.userId}
+                                                      >
+                                                        {entry.userId}
+                                                      </p>
+                                                    </div>
+
+                                                    <div className="flex flex-wrap gap-2">
+                                                      <span
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                                                        style={{
+                                                          ...ls,
+                                                          fontSize: '12px',
+                                                          fontWeight: 'var(--font-weight-semibold)',
+                                                          color: actionStyle.color,
+                                                          backgroundColor: actionStyle.bg,
+                                                          border: `1px solid ${actionStyle.border}`,
+                                                        }}
+                                                      >
+                                                        {actionStyle.icon}
+                                                        {actionStyle.label}
+                                                      </span>
+                                                      <span
+                                                        className="px-2.5 py-1 rounded-full"
+                                                        style={{
+                                                          ...ls,
+                                                          fontSize: '12px',
+                                                          color: 'var(--foreground)',
+                                                          backgroundColor: 'var(--input-background)',
+                                                          border: '1px solid var(--border)',
+                                                        }}
+                                                      >
+                                                        {formatChangeCount(entry.changes.length)}
+                                                      </span>
+                                                    </div>
+
+                                                    <div className="min-w-0">
+                                                      <p
+                                                        className="m-0 truncate"
+                                                        style={{
+                                                          fontFamily: 'var(--font-family-display)',
+                                                          fontSize: 'var(--text-base)',
+                                                          fontWeight: 'var(--font-weight-semibold)',
+                                                          color: 'var(--foreground)',
+                                                        }}
+                                                        title={getHistorySummary(entry)}
+                                                      >
+                                                        {getHistorySummary(entry)}
+                                                      </p>
+                                                      <p
+                                                        className="m-0 mt-0.5 truncate"
+                                                        style={{
+                                                          ...ls,
+                                                          fontSize: '12px',
+                                                          color: 'var(--muted-foreground)',
+                                                          fontWeight: 'var(--font-weight-normal)',
+                                                        }}
+                                                        title={`${previewFields}${hiddenChanges > 0 ? `, +${hiddenChanges} autre${hiddenChanges > 1 ? 's' : ''}` : ''}`}
+                                                      >
+                                                        {previewFields}
+                                                        {hiddenChanges > 0 && `, +${hiddenChanges} autre${hiddenChanges > 1 ? 's' : ''}`}
+                                                      </p>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              ),
+                                              children: (
+                                                <div className="space-y-3 pt-1">
+                                                  <div className="flex flex-wrap gap-2">
+                                                    {[`Tiers ${entry.tierId}`, ...sections].map(meta => (
+                                                      <span
+                                                        key={`${entry.id}-${meta}`}
+                                                        className="px-2.5 py-1 rounded-full"
+                                                        style={{
+                                                          ...ls,
+                                                          fontSize: '12px',
+                                                          color: 'var(--muted-foreground)',
+                                                          backgroundColor: '#FAFAFA',
+                                                          border: '1px solid var(--border)',
+                                                        }}
+                                                      >
+                                                        {meta}
+                                                      </span>
+                                                    ))}
+                                                  </div>
+
+                                                  {groupedChanges.map(grouped => {
+                                                    const groupStyle = historySectionConfig[grouped.section];
+
+                                                    return (
+                                                      <div
+                                                        key={`${entry.id}-${grouped.section}`}
+                                                        className="rounded-lg overflow-hidden"
+                                                        style={{
+                                                          border: '1px solid var(--border)',
+                                                          backgroundColor: 'var(--card)',
+                                                        }}
+                                                      >
+                                                        <div
+                                                          className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
+                                                          style={{
+                                                            backgroundColor: groupStyle.bg,
+                                                            borderBottom: '1px solid var(--border)',
+                                                          }}
+                                                        >
+                                                          <span
+                                                            style={{
+                                                              ...ls,
+                                                              fontSize: '12px',
+                                                              fontWeight: 'var(--font-weight-semibold)',
+                                                              color: groupStyle.color,
+                                                            }}
+                                                          >
+                                                            {grouped.section}
+                                                          </span>
+                                                          <span
+                                                            style={{
+                                                              ...ls,
+                                                              fontSize: '12px',
+                                                              color: 'var(--muted-foreground)',
+                                                            }}
+                                                          >
+                                                            {formatChangeCount(grouped.changes.length)}
+                                                          </span>
+                                                        </div>
+
+                                                        <div>
+                                                          {grouped.changes.map((change, changeIndex) => {
+                                                            const sensitiveField = isSensitiveHistoryField(change.field);
+                                                            const oldValue = maskHistoryValue(change.field, change.oldValue);
+                                                            const newValue = maskHistoryValue(change.field, change.newValue);
+
+                                                            return (
+                                                              <div
+                                                                key={`${entry.id}-${grouped.section}-${change.field}-${changeIndex}`}
+                                                                className="grid gap-3 px-3 py-3 lg:grid-cols-[180px_minmax(0,1fr)_minmax(0,1fr)] items-start"
+                                                                style={{
+                                                                  borderTop: changeIndex === 0 ? 'none' : '1px solid var(--border)',
+                                                                }}
+                                                              >
+                                                                <div>
+                                                                  <p
+                                                                    className="m-0"
+                                                                    style={{
+                                                                      fontFamily: 'var(--font-family-display)',
+                                                                      fontSize: 'var(--text-base)',
+                                                                      fontWeight: 'var(--font-weight-semibold)',
+                                                                      color: 'var(--foreground)',
+                                                                    }}
+                                                                  >
+                                                                    {change.field}
+                                                                  </p>
+                                                                  {sensitiveField && (
+                                                                    <span
+                                                                      className="inline-flex mt-2 px-2 py-0.5 rounded-full"
+                                                                      style={{
+                                                                        ...ls,
+                                                                        fontSize: '12px',
+                                                                        backgroundColor: '#FFF7E6',
+                                                                        border: '1px solid #FFD591',
+                                                                        color: '#D46B08',
+                                                                      }}
+                                                                    >
+                                                                      Valeur sensible masquée
+                                                                    </span>
+                                                                  )}
+                                                                </div>
+
+                                                                <div
+                                                                  className="rounded-lg p-3"
+                                                                  style={{
+                                                                    backgroundColor: 'var(--input-background)',
+                                                                    border: '1px solid var(--border)',
+                                                                  }}
+                                                                >
+                                                                  <p
+                                                                    className="m-0 mb-1"
+                                                                    style={{
+                                                                      ...ls,
+                                                                      fontSize: '12px',
+                                                                      color: 'var(--muted-foreground)',
+                                                                    }}
+                                                                  >
+                                                                    Avant
+                                                                  </p>
+                                                                  <span
+                                                                    style={{
+                                                                      ...ls,
+                                                                      fontSize: '13px',
+                                                                      color: sensitiveField ? 'var(--muted-foreground)' : 'var(--foreground)',
+                                                                      fontFamily: sensitiveField ? 'var(--font-family-display)' : 'var(--font-family-text)',
+                                                                    }}
+                                                                  >
+                                                                    {oldValue}
+                                                                  </span>
+                                                                </div>
+
+                                                                <div
+                                                                  className="rounded-lg p-3"
+                                                                  style={{
+                                                                    backgroundColor: 'rgba(82,196,26,0.06)',
+                                                                    border: '1px solid rgba(82,196,26,0.2)',
+                                                                  }}
+                                                                >
+                                                                  <p
+                                                                    className="m-0 mb-1"
+                                                                    style={{
+                                                                      ...ls,
+                                                                      fontSize: '12px',
+                                                                      color: 'var(--muted-foreground)',
+                                                                    }}
+                                                                  >
+                                                                    Après
+                                                                  </p>
+                                                                  <span
+                                                                    style={{
+                                                                      ...ls,
+                                                                      fontSize: '13px',
+                                                                      color: sensitiveField ? 'var(--muted-foreground)' : 'var(--foreground)',
+                                                                      fontFamily: sensitiveField ? 'var(--font-family-display)' : 'var(--font-family-text)',
+                                                                    }}
+                                                                  >
+                                                                    {newValue}
+                                                                  </span>
+                                                                </div>
+                                                              </div>
+                                                            );
+                                                          })}
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                  })}
+                                                </div>
+                                              ),
+                                              styles: {
+                                                header: { padding: '12px 16px' },
+                                                body: { padding: '0 16px 16px' },
+                                              },
+                                            },
+                                          ]}
+                                        />
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </Card>
