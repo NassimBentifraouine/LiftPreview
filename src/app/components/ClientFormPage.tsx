@@ -137,52 +137,68 @@ export default function ClientFormPage() {
           transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
         }}
       >
-        <button
-          onClick={() => setSidebarCollapsed(prev => !prev)}
-          className="shrink-0 flex items-center justify-center w-full py-2"
-          style={{ backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', color: 'rgba(255,255,255,0.7)' }}
-        >
-          {sidebarCollapsed ? <DktIcon name="menu" size={16} color="rgba(255,255,255,0.7)" /> : <DktIcon name="menu-left" size={16} color="rgba(255,255,255,0.7)" />}
-        </button>
-
         {sidebarCollapsed ? (
-          <div className="flex flex-col items-center gap-1 py-3 flex-1 overflow-y-auto">
-            {formSections.map((section) => {
-              const isActive = activeSection === section.id;
-              const allFields = section.subsections.flatMap(s => s.fields);
-              const done = allFields.filter(f => completedFields.has(f)).length;
-              const pct = allFields.length > 0 ? Math.round((done / allFields.length) * 100) : 0;
-              const isComplete = pct === 100;
-              return (
-                <button
-                  key={section.id}
-                  onClick={() => scrollToId(section.id)}
-                  title={section.title}
-                  className="flex items-center justify-center w-10 h-10 rounded-lg"
-                  style={{
-                    backgroundColor: isActive ? 'rgba(255,255,255,0.15)' : 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: isComplete ? '#52c41a' : isActive ? 'white' : 'rgba(255,255,255,0.5)',
-                    position: 'relative',
-                  }}
-                >
-                  <span style={{ fontSize: '18px' }}>{section.icon}</span>
-                </button>
-              );
-            })}
-          </div>
+          <>
+            <div className="shrink-0 px-3 pt-3 pb-2 flex justify-center">
+              <button
+                onClick={() => setSidebarCollapsed(prev => !prev)}
+                className="flex items-center justify-center w-9 h-9 rounded-lg"
+                style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.78)' }}
+                aria-label="Ouvrir la navigation latérale"
+                title="Ouvrir la navigation latérale"
+              >
+                <DktIcon name="menu" size={16} color="rgba(255,255,255,0.78)" />
+              </button>
+            </div>
+            <div className="flex flex-col items-center gap-1 py-3 flex-1 overflow-y-auto">
+              {formSections.map((section) => {
+                const isActive = activeSection === section.id;
+                const allFields = section.subsections.flatMap(s => s.fields);
+                const done = allFields.filter(f => completedFields.has(f)).length;
+                const pct = allFields.length > 0 ? Math.round((done / allFields.length) * 100) : 0;
+                const isComplete = pct === 100;
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => scrollToId(section.id)}
+                    title={section.title}
+                    className="flex items-center justify-center w-10 h-10 rounded-lg"
+                    style={{
+                      backgroundColor: isActive ? 'rgba(255,255,255,0.15)' : 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: isComplete ? '#52c41a' : isActive ? 'white' : 'rgba(255,255,255,0.5)',
+                      position: 'relative',
+                    }}
+                  >
+                    <span style={{ fontSize: '18px' }}>{section.icon}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
         ) : (
           <>
             <div className="px-5 pt-4 pb-3 shrink-0 overflow-hidden">
-              <button
-                onClick={() => navigate('/clients')}
-                className="flex items-center gap-1.5 mb-4"
-                style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-family-text)', fontSize: '13px' }}
-              >
-                <DktIcon name="arrow-left" size={12} color="rgba(255,255,255,0.6)" />
-                Retour à la liste
-              </button>
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <button
+                  onClick={() => navigate('/clients')}
+                  className="flex items-center gap-1.5"
+                  style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontFamily: 'var(--font-family-text)', fontSize: '13px' }}
+                >
+                  <DktIcon name="arrow-left" size={12} color="rgba(255,255,255,0.6)" />
+                  Retour à la liste
+                </button>
+                <button
+                  onClick={() => setSidebarCollapsed(prev => !prev)}
+                  className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg"
+                  style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.78)' }}
+                  aria-label="Réduire la navigation latérale"
+                  title="Réduire la navigation latérale"
+                >
+                  <DktIcon name="menu-left" size={16} color="rgba(255,255,255,0.78)" />
+                </button>
+              </div>
               <h2 className="m-0 mb-1" style={{ fontFamily: 'var(--font-family-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--font-weight-semibold)', color: 'white', lineHeight: '1.3' }}>
                 Fiche Client LIFT
               </h2>
