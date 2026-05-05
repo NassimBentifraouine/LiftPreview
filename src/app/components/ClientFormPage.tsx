@@ -19,7 +19,7 @@ const formSections: FormSection[] = [
       { id: 'identite-generale', label: 'Identité générale', fields: ['raisonSociale', 'paysImmatriculation', 'customerGroup', 'typeClient', 'nature', 'telephone', 'email'] },
       { id: 'identifiants-fiscaux', label: 'Identifiants fiscaux', fields: ['assujettTVA', 'numeroTVA', 'legalId', 'numeroInscription'] },
       { id: 'adresse-principale', label: 'Adresse principale', fields: ['adresseNumero', 'adresseVoie', 'adresseVille', 'adresseCP'] },
-      { id: 'adresse-livraison', label: 'Adresse de livraison', fields: ['identifiantLivraison', 'adresseLivraisonDifferente', 'livraisonNumero', 'livraisonVoie', 'livraisonVille', 'livraisonCP'] },
+      { id: 'adresse-livraison', label: 'Adresse de livraison', fields: ['paysLivraison', 'identifiantLivraison', 'adresseLivraisonDifferente', 'livraisonNumero', 'livraisonVoie', 'livraisonVille', 'livraisonCP'] },
     ],
   },
   {
