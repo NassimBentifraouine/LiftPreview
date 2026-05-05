@@ -1,6 +1,7 @@
 ﻿import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { Alert, App, Button, Checkbox, Collapse, Form, Input, Modal, Popconfirm, Select, Tag, Upload } from 'antd';
+import { motion } from 'motion/react';
 import {
   BankOutlined,
   CheckCircleFilled,
@@ -28,6 +29,7 @@ type FormStatus = 'draft' | 'pending_business' | null;
 type HistoryAction = 'Create' | 'Update' | 'Validate' | 'Reject';
 type HistoryFilter = 'all' | 'Create' | 'Update' | 'workflow';
 type HistorySection = 'Identité' | 'Coordonnées' | 'Finance' | 'Périmètre' | 'Workflow';
+type IcoStatus = 'ok' | 'pending' | 'ko';
 
 interface HistoryChange {
   field: string;
@@ -166,6 +168,12 @@ type PrefillRecord = {
   iban: string;
   swift: string;
   bankName: string;
+  deliveryAddressDifferent?: boolean;
+  deliveryNumber?: string;
+  deliveryStreet?: string;
+  deliveryAddressLine2?: string;
+  deliveryPostalCode?: string;
+  deliveryCity?: string;
 };
 
 const countryCatalog = [
@@ -249,6 +257,12 @@ const mockTierById: Record<string, PrefillRecord> = {
     iban: 'FR7630006000011234567890189',
     swift: 'AGRIFRPP',
     bankName: 'bnp_fr',
+    deliveryAddressDifferent: true,
+    deliveryNumber: '18',
+    deliveryStreet: 'Rue du Depot Central',
+    deliveryAddressLine2: 'Zone logistique B',
+    deliveryPostalCode: '59810',
+    deliveryCity: 'Lesquin',
   },
   '100002': {
     legalName: 'Decathlon Belgium NV',
@@ -263,6 +277,7 @@ const mockTierById: Record<string, PrefillRecord> = {
     iban: 'BE62510007547061',
     swift: 'GEBABEBB',
     bankName: 'ing_be',
+    deliveryAddressDifferent: false,
   },
   '100003': {
     legalName: 'Decathlon España S.A.',
@@ -347,7 +362,7 @@ const formSections: FormSection[] = [
       { id: 'infos-principales', label: 'Informations principales', fields: ['sapId', 'legalName', 'tierCountry', 'tierType', 'nature'] },
       { id: 'identifiants-fiscaux', label: 'Identifiants fiscaux', fields: ['taxId', 'vatNumber', 'sirenSiret', 'ean13', 'vatSubject'] },
       { id: 'donnees-bancaires', label: 'Données bancaires', fields: ['bankName', 'bankCountry', 'swift', 'iban', 'bankCurrency'] },
-      { id: 'adresse-siege', label: 'Adresse siège', fields: ['addressNumber', 'addressStreet', 'postalCode', 'city'] },
+      { id: 'adresse-siege', label: 'Adresses', fields: ['addressNumber', 'addressStreet', 'postalCode', 'city', 'deliveryAddress'] },
       { id: 'contacts-generaux', label: 'Contacts généraux', fields: ['generalPhone', 'generalEmail'] },
     ],
   },
@@ -441,6 +456,55 @@ const statusConfig: Record<Exclude<FormStatus, null>, { label: string; color: st
     border: '#ffe58f',
   },
 };
+
+const deliveryRequiredFields = ['deliveryNumber', 'deliveryStreet', 'deliveryPostalCode', 'deliveryCity'] as const;
+
+const icoStatusConfig: Record<IcoStatus, { label: string; color: string; bg: string; border: string }> = {
+  ok: {
+    label: 'ICO OK',
+    color: '#389E0D',
+    bg: '#F6FFED',
+    border: '#B7EB8F',
+  },
+  pending: {
+    label: 'ICO à vérifier',
+    color: '#D46B08',
+    bg: '#FFF7E6',
+    border: '#FFD591',
+  },
+  ko: {
+    label: 'ICO KO',
+    color: '#CF1322',
+    bg: '#FFF1F0',
+    border: '#FFA39E',
+  },
+};
+
+const icoStatusByCountry: Record<string, IcoStatus> = {
+  FR: 'ok',
+  BE: 'pending',
+  DE: 'ok',
+  ES: 'ok',
+  IT: 'pending',
+  PT: 'ok',
+  GB: 'ko',
+  US: 'pending',
+  CN: 'pending',
+};
+
+const defaultLocalGlKeyByCountry: Record<string, string> = {
+  FR: '409100',
+  BE: '409200',
+  DE: '409300',
+  ES: '409400',
+  IT: '409500',
+  PT: '409600',
+  GB: '409700',
+  US: '409800',
+  CN: '409900',
+};
+
+const workdayMigratedGlKeyCountries = ['FR', 'DE', 'PT'];
 
 const historyActionConfig: Record<HistoryAction, { label: string; color: string; bg: string; border: string; icon: ReactNode }> = {
   Create: {
@@ -681,6 +745,11 @@ export default function TierFormPage() {
     if (values.tierCountry === 'FR') mark('sirenSiret');
     else next.add('sirenSiret');
 
+    const deliveryAddressComplete =
+      !values.deliveryAddressDifferent
+      || deliveryRequiredFields.every(fieldName => isFieldValueComplete(values[fieldName]));
+    if (deliveryAddressComplete) next.add('deliveryAddress');
+
     const countries = Array.isArray(values.operationCountries) ? (values.operationCountries as string[]) : [];
     const financeComplete = countries.length > 0 && countries.every(countryCode =>
       localFinanceRequiredSuffixes.every((suffix) =>
@@ -753,6 +822,12 @@ export default function TierFormPage() {
       addressLine2: '',
       postalCode: prefill.postalCode,
       city: prefill.city,
+      deliveryAddressDifferent: prefill.deliveryAddressDifferent || false,
+      deliveryNumber: prefill.deliveryNumber || '',
+      deliveryStreet: prefill.deliveryStreet || '',
+      deliveryAddressLine2: prefill.deliveryAddressLine2 || '',
+      deliveryPostalCode: prefill.deliveryPostalCode || '',
+      deliveryCity: prefill.deliveryCity || '',
       generalPhone: prefill.phone,
       generalEmail: prefill.email,
       apRole: true,
@@ -790,6 +865,7 @@ export default function TierFormPage() {
       const vatTypeKey = getLocalFieldName(countryCode, 'localVatType');
       const vatRateKey = getLocalFieldName(countryCode, 'localVatRate');
       const withholdingKey = getLocalFieldName(countryCode, 'localWithholdingTax');
+      const glKeyKey = getLocalFieldName(countryCode, 'localGlKey');
 
       if (!form.getFieldValue(paymentNameKey) && legalName) patch[paymentNameKey] = legalName;
       if (!form.getFieldValue(accountingEmailKey) && generalEmail) patch[accountingEmailKey] = generalEmail;
@@ -801,6 +877,7 @@ export default function TierFormPage() {
       if (!form.getFieldValue(vatTypeKey)) patch[vatTypeKey] = 'V';
       if (!form.getFieldValue(vatRateKey)) patch[vatRateKey] = '20';
       if (!form.getFieldValue(withholdingKey)) patch[withholdingKey] = defaultWithholding;
+      if (!form.getFieldValue(glKeyKey)) patch[glKeyKey] = defaultLocalGlKeyByCountry[countryCode] || '409100';
     });
 
     if (Object.keys(patch).length > 0) {
@@ -1695,7 +1772,7 @@ export default function TierFormPage() {
                 <Card
                   id="adresse-siege"
                   title="Adresse siège"
-                  subtitle="Adresse principale de l'entité"
+                  subtitle="Adresse principale et, si besoin, adresse de livraison"
                   icon={<HomeOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}
                 >
                   <div className="space-y-6">
@@ -1742,6 +1819,75 @@ export default function TierFormPage() {
                         <Input size="large" placeholder="Lille" suffix={doneIcon('city')} />
                       </Form.Item>
                     </div>
+
+                    <Form.Item
+                      name="deliveryAddressDifferent"
+                      valuePropName="checked"
+                      className={fc('deliveryAddress')}
+                    >
+                      <Checkbox>
+                        <span style={ls}>L'adresse de livraison est différente de l'adresse siège</span>
+                      </Checkbox>
+                    </Form.Item>
+
+                    <Form.Item noStyle shouldUpdate={(prev, cur) => prev.deliveryAddressDifferent !== cur.deliveryAddressDifferent}>
+                      {({ getFieldValue }) =>
+                        getFieldValue('deliveryAddressDifferent') ? (
+                          <motion.div
+                            initial={{ opacity: 0, y: -8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-5 rounded-lg"
+                            style={{ backgroundColor: 'rgba(255,205,78,0.05)', border: '1px dashed var(--accent)' }}
+                          >
+                            <div className="grid grid-cols-4 gap-4 mb-6">
+                              <Form.Item
+                                label={<span style={ls}>N° Rue {req}</span>}
+                                name="deliveryNumber"
+                                rules={[{ required: true, message: 'Champ requis' }]}
+                                className={fc('deliveryNumber')}
+                              >
+                                <Input size="large" placeholder="12" suffix={doneIcon('deliveryNumber')} />
+                              </Form.Item>
+                              <Form.Item
+                                label={<span style={ls}>Adresse complète {req}</span>}
+                                name="deliveryStreet"
+                                rules={[{ required: true, message: 'Champ requis' }]}
+                                className={`${fc('deliveryStreet')} col-span-3`}
+                              >
+                                <Input size="large" placeholder="Rue / quai / entrepôt" suffix={doneIcon('deliveryStreet')} />
+                              </Form.Item>
+                            </div>
+
+                            <Form.Item
+                              label={<span style={ls}>Complément</span>}
+                              name="deliveryAddressLine2"
+                              className={fc('deliveryAddressLine2')}
+                            >
+                              <Input size="large" placeholder="Bâtiment, zone, quai..." />
+                            </Form.Item>
+
+                            <div className="grid grid-cols-2 gap-6">
+                              <Form.Item
+                                label={<span style={ls}>Code postal {req}</span>}
+                                name="deliveryPostalCode"
+                                rules={[{ required: true, message: 'Champ requis' }]}
+                                className={fc('deliveryPostalCode')}
+                              >
+                                <Input size="large" placeholder="59000" suffix={doneIcon('deliveryPostalCode')} />
+                              </Form.Item>
+                              <Form.Item
+                                label={<span style={ls}>Ville {req}</span>}
+                                name="deliveryCity"
+                                rules={[{ required: true, message: 'Champ requis' }]}
+                                className={fc('deliveryCity')}
+                              >
+                                <Input size="large" placeholder="Lille" suffix={doneIcon('deliveryCity')} />
+                              </Form.Item>
+                            </div>
+                          </motion.div>
+                        ) : null
+                      }
+                    </Form.Item>
                   </div>
                 </Card>
 
@@ -2041,7 +2187,7 @@ export default function TierFormPage() {
                 <Card
                   id="accordeons-pays"
                   title="Accordéons Fournisseur par pays"
-                  subtitle="Contacts locaux, fiscalité et comptabilité"
+                  subtitle="Contacts locaux, fiscalité et paiement"
                   icon={<DollarOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}
                 >
                   {selectedCountries.length === 0 ? (
@@ -2071,6 +2217,8 @@ export default function TierFormPage() {
                       items={selectedCountries.map(countryCode => {
                         const localComplete = isCountryFinanceComplete(countryCode);
                         const localPrefix = getLocalFieldName(countryCode, '');
+                        const icoStatus = icoStatusConfig[icoStatusByCountry[countryCode] || 'pending'];
+                        const glKeyMigratedToWorkday = workdayMigratedGlKeyCountries.includes(countryCode);
                         return {
                           key: countryCode,
                           label: (
@@ -2099,20 +2247,36 @@ export default function TierFormPage() {
                                   IBAN: {displayedIban}
                                 </p>
                               </div>
-                              <Tag
-                                style={{
-                                  margin: 0,
-                                  borderRadius: 'var(--radius-button)',
-                                  border: `1px solid ${localComplete ? '#b7eb8f' : '#ffe58f'}`,
-                                  backgroundColor: localComplete ? '#f6ffed' : '#fffbe6',
-                                  color: localComplete ? '#389e0d' : '#d4b106',
-                                  fontFamily: 'var(--font-family-text)',
-                                  fontSize: '12px',
-                                  fontWeight: 'var(--font-weight-medium)',
-                                }}
-                              >
-                                {localComplete ? 'Complet' : 'À compléter'}
-                              </Tag>
+                              <div className="flex items-center gap-2">
+                                <Tag
+                                  style={{
+                                    margin: 0,
+                                    borderRadius: 'var(--radius-button)',
+                                    border: `1px solid ${icoStatus.border}`,
+                                    backgroundColor: icoStatus.bg,
+                                    color: icoStatus.color,
+                                    fontFamily: 'var(--font-family-text)',
+                                    fontSize: '12px',
+                                    fontWeight: 'var(--font-weight-medium)',
+                                  }}
+                                >
+                                  {icoStatus.label}
+                                </Tag>
+                                <Tag
+                                  style={{
+                                    margin: 0,
+                                    borderRadius: 'var(--radius-button)',
+                                    border: `1px solid ${localComplete ? '#b7eb8f' : '#ffe58f'}`,
+                                    backgroundColor: localComplete ? '#f6ffed' : '#fffbe6',
+                                    color: localComplete ? '#389e0d' : '#d4b106',
+                                    fontFamily: 'var(--font-family-text)',
+                                    fontSize: '12px',
+                                    fontWeight: 'var(--font-weight-medium)',
+                                  }}
+                                >
+                                  {localComplete ? 'Complet' : 'À compléter'}
+                                </Tag>
+                              </div>
                             </div>
                           ),
                           children: (
@@ -2166,6 +2330,20 @@ export default function TierFormPage() {
                                 </div>
 
                                 <div>
+                                  <Alert
+                                    message={<span style={ls}>Vérification ICO</span>}
+                                    description={
+                                      <span style={{ ...ls, fontSize: '13px', fontWeight: 'var(--font-weight-normal)', color: 'var(--muted-foreground)' }}>
+                                        Statut fiscal du pays d'opération affiché directement sur l'accordéon pour éviter une ligne supplémentaire dans la vue condensée.
+                                      </span>
+                                    }
+                                    type={icoStatusByCountry[countryCode] === 'ko' ? 'error' : icoStatusByCountry[countryCode] === 'pending' ? 'warning' : 'success'}
+                                    showIcon
+                                    style={{
+                                      marginBottom: '20px',
+                                      borderRadius: 'var(--radius)',
+                                    }}
+                                  />
                                   <h6
                                     className="m-0 mb-3"
                                     style={{
@@ -2175,7 +2353,7 @@ export default function TierFormPage() {
                                       color: 'var(--foreground)',
                                     }}
                                   >
-                                    B. Paramètres Account Payable
+                                    B. Fiscalité & paiement
                                   </h6>
                                   <div className="grid grid-cols-2 gap-6">
                                     <Form.Item
@@ -2196,14 +2374,6 @@ export default function TierFormPage() {
                                     </Form.Item>
                                     <Form.Item label={<span style={ls}>Lieu de paiement</span>} name={`${localPrefix}localPaymentPlace`}>
                                       <Input size="large" readOnly />
-                                    </Form.Item>
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-6">
-                                    <Form.Item name={`${localPrefix}paymentBlocked`} valuePropName="checked">
-                                      <Checkbox>Payment Blocked</Checkbox>
-                                    </Form.Item>
-                                    <Form.Item name={`${localPrefix}grirClearing`} valuePropName="checked">
-                                      <Checkbox>GR/IR Clearing</Checkbox>
                                     </Form.Item>
                                   </div>
                                   <div className="grid grid-cols-3 gap-4">
@@ -2230,10 +2400,30 @@ export default function TierFormPage() {
                                   <Form.Item
                                     label={<span style={ls}>GL Key {req}</span>}
                                     name={`${localPrefix}localGlKey`}
-                                    rules={[{ required: true, message: 'Champ requis' }]}
+                                    rules={glKeyMigratedToWorkday ? [] : [{ required: true, message: 'Champ requis' }]}
                                     className={fc(`${localPrefix}localGlKey`)}
+                                    extra={
+                                      glKeyMigratedToWorkday ? (
+                                        <span style={{ ...ls, fontSize: '12px', color: 'var(--muted-foreground)' }}>
+                                          Déjà migrée sur Workday, valeur figée dans LIFT.
+                                        </span>
+                                      ) : undefined
+                                    }
                                   >
-                                    <Input size="large" placeholder="Ex: 409100" suffix={doneIcon(`${localPrefix}localGlKey`)} />
+                                    <Input
+                                      size="large"
+                                      disabled={glKeyMigratedToWorkday}
+                                      placeholder="Ex: 409100"
+                                      suffix={glKeyMigratedToWorkday ? 'Migrée Workday' : doneIcon(`${localPrefix}localGlKey`)}
+                                      style={
+                                        glKeyMigratedToWorkday
+                                          ? {
+                                              backgroundColor: '#f5f5f5',
+                                              color: '#8c8c8c',
+                                            }
+                                          : undefined
+                                      }
+                                    />
                                   </Form.Item>
                                 </div>
 
