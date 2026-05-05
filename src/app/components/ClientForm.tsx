@@ -1,8 +1,9 @@
 ﻿import { Form, Input, Select, Switch, Checkbox, Button, Upload, App, Alert, Tag, Tooltip, Collapse, Modal, Popconfirm } from 'antd';
 import { InboxOutlined, CheckCircleOutlined, InfoCircleOutlined, UserOutlined, SafetyOutlined, HomeOutlined, PhoneOutlined, MailOutlined, DollarOutlined, FileTextOutlined, FolderOpenOutlined, LockOutlined, CheckCircleFilled, BankOutlined, GlobalOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Radio } from 'antd';
 import { motion } from 'motion/react';
 import type { FormSection } from './types';
-import { useState, useRef, useCallback, type ReactNode } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import DktIcon from './DktIcon';
 import CountryFlag from './CountryFlag';
 
@@ -46,7 +47,6 @@ const countryOptionFilter = (input: string, option?: any) =>
   ((option?.searchLabel || '').toLowerCase().includes(input.toLowerCase()));
 
 const typeClientOptions = [
-  { value: 'b2c', label: 'B2C' },
   { value: 'clubs', label: 'Clubs & Entities' },
   { value: 'franchise', label: 'Franchise' },
   { value: 'reseller', label: 'Reseller' },
@@ -61,11 +61,106 @@ const customerGroupOptions = [
 ];
 
 const natureOptions = [
-  { value: 'retail', label: 'Commerce de détail' },
-  { value: 'wholesale', label: 'Commerce de gros' },
-  { value: 'manufacturer', label: 'Fabricant' },
+  { value: 'goods', label: 'Biens' },
   { value: 'services', label: 'Services' },
 ];
+
+const defaultLegalIdTypeOptions = [
+  { value: 'company_registration', label: "Numero d'immatriculation" },
+  { value: 'tax_id_local', label: 'Tax ID local' },
+];
+
+const legalIdTypeOptionsByCountry: Record<string, { value: string; label: string }[]> = {
+  FR: [
+    { value: 'siren', label: 'SIREN' },
+    { value: 'siret', label: 'SIRET' },
+  ],
+  BE: [
+    { value: 'bce', label: 'Numero BCE' },
+    { value: 'enterprise_number', label: "Numero d'entreprise" },
+  ],
+  ES: [
+    { value: 'nif', label: 'NIF' },
+    { value: 'cif', label: 'CIF' },
+  ],
+  DE: [
+    { value: 'handelsregister', label: 'Handelsregisternummer' },
+    { value: 'ustid', label: 'USt-IdNr' },
+  ],
+  IT: [
+    { value: 'partita_iva', label: 'Partita IVA' },
+    { value: 'codice_fiscale', label: 'Codice fiscale' },
+  ],
+  GB: [
+    { value: 'company_number', label: 'Company registration number' },
+    { value: 'utr', label: 'UTR' },
+  ],
+};
+
+const billingEntityCatalog: Record<string, { value: string; label: string }[]> = {
+  FR: [
+    { value: 'decathlon-france-sas', label: 'Decathlon France SAS' },
+    { value: 'decathlon-pro-france-sas', label: 'Decathlon Pro France SAS' },
+  ],
+  BE: [
+    { value: 'decathlon-belgium-nv', label: 'Decathlon Belgium NV' },
+    { value: 'decathlon-belgium-pro-nv', label: 'Decathlon Belgium Pro NV' },
+  ],
+  ES: [
+    { value: 'decathlon-espana-sa', label: 'Decathlon Espana SA' },
+    { value: 'decathlon-espana-pro-sa', label: 'Decathlon Espana Pro SA' },
+  ],
+  DE: [
+    { value: 'decathlon-deutschland-se', label: 'Decathlon Deutschland SE' },
+    { value: 'decathlon-germany-pro-se', label: 'Decathlon Germany Pro SE' },
+  ],
+  IT: [
+    { value: 'decathlon-italia-srl', label: 'Decathlon Italia SRL' },
+    { value: 'decathlon-italia-pro-srl', label: 'Decathlon Italia Pro SRL' },
+  ],
+};
+
+const shipFromTaxIdByCountry: Record<string, string> = {
+  FR: 'FR12345678901',
+  BE: 'BE0123456789',
+  ES: 'ESA12345678',
+  DE: 'DE123456789',
+  IT: 'IT12345678901',
+  GB: 'GB123456789',
+  NL: 'NL123456789B01',
+  PT: 'PT123456789',
+  PL: 'PL1234567890',
+  CH: 'CHE123456789',
+  LU: 'LU12345678',
+  AT: 'ATU12345678',
+  DK: 'DK12345678',
+  SE: 'SE123456789001',
+  NO: 'NO123456789MVA',
+  FI: 'FI12345678',
+  IE: 'IE1234567AA',
+  GR: 'EL123456789',
+};
+
+const getLegalIdOptions = (countryCode?: string) =>
+  legalIdTypeOptionsByCountry[countryCode ?? ''] ?? defaultLegalIdTypeOptions;
+
+const getBillingEntityOptions = (countryCode?: string, clientType?: string) => {
+  if (!countryCode) return [];
+
+  const fallbackCountryName = countryCatalog.find((country) => country.value === countryCode)?.name ?? countryCode;
+  const baseOptions = billingEntityCatalog[countryCode] ?? [
+    {
+      value: `${countryCode.toLowerCase()}-decathlon-main`,
+      label: `Decathlon ${fallbackCountryName}`,
+    },
+    {
+      value: `${countryCode.toLowerCase()}-decathlon-pro`,
+      label: `Decathlon ${fallbackCountryName} Pro`,
+    },
+  ];
+
+  return clientType === 'franchise' ? baseOptions : [baseOptions[0]];
+};
 
 const deviseOptions = [
   { value: 'EUR', label: 'Euro (EUR)' },
@@ -123,7 +218,6 @@ export default function ClientForm({
   onAccountReceivableChange,
 }: ClientFormProps) {
   const [form] = Form.useForm();
-  const { message } = App.useApp();
   const [filesByType, setFilesByType] = useState<Record<string, any[]>>({});
   const [customerId, setCustomerId] = useState<string>('');
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
@@ -135,6 +229,11 @@ export default function ClientForm({
     justificatifs: true,
   });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const paysImmatriculation = Form.useWatch('paysImmatriculation', form);
+  const typeClient = Form.useWatch('typeClient', form);
+  const paysFacturant = Form.useWatch('paysFacturant', form);
+  const legalIdOptions = useMemo(() => getLegalIdOptions(paysImmatriculation), [paysImmatriculation]);
+  const billingEntityOptions = useMemo(() => getBillingEntityOptions(paysFacturant, typeClient), [paysFacturant, typeClient]);
 
   // Generate auto customer ID on mount
   useState(() => {
@@ -183,6 +282,26 @@ export default function ClientForm({
 
   const doneIcon = (fieldName: string) =>
     completedFields.has(fieldName) ? <CheckCircleOutlined style={{ color: '#52c41a' }} /> : undefined;
+
+  useEffect(() => {
+    const currentLegalId = form.getFieldValue('legalId');
+    if (currentLegalId && !legalIdOptions.some((option) => option.value === currentLegalId)) {
+      form.setFieldValue('legalId', undefined);
+    }
+  }, [form, legalIdOptions]);
+
+  useEffect(() => {
+    const currentBillingEntity = form.getFieldValue('nomEntiteFacturante');
+    const nextValues: Record<string, string | undefined> = {
+      shipFrom: paysFacturant ? shipFromTaxIdByCountry[paysFacturant] ?? '' : undefined,
+    };
+
+    if (!currentBillingEntity || !billingEntityOptions.some((option) => option.value === currentBillingEntity)) {
+      nextValues.nomEntiteFacturante = billingEntityOptions.length === 1 ? billingEntityOptions[0].value : undefined;
+    }
+
+    form.setFieldsValue(nextValues);
+  }, [billingEntityOptions, form, paysFacturant]);
 
   // Shared styles
   const ls = { fontFamily: 'var(--font-family-text)', fontSize: 'var(--text-sm)', fontWeight: 'var(--font-weight-medium)' as const };
@@ -362,12 +481,12 @@ export default function ClientForm({
               <Form.Item label={<span style={ls}>Pays d'immatriculation {req}</span>} name="paysImmatriculation" rules={[{ required: true, message: 'Champ requis' }]} className={fc('paysImmatriculation')}>
                 <Select placeholder="Sélectionnez un pays" size="large" showSearch filterOption={countryOptionFilter} options={paysOptions} />
               </Form.Item>
-              <Form.Item label={<span style={ls}>Customer Group {req}</span>} name="customerGroup" rules={[{ required: true, message: 'Champ requis' }]} className={fc('customerGroup')}>
-                <Select placeholder="Sélectionnez" size="large" options={customerGroupOptions} />
+              <Form.Item label={<span style={ls}>Customer Group</span>} name="customerGroup" className={fc('customerGroup')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Liste en cours d'ajustement</span>}>
+                <Select placeholder="Liste en cours d'ajustement" size="large" options={customerGroupOptions} />
               </Form.Item>
             </div>
             <div className="grid grid-cols-2 gap-6">
-              <Form.Item label={<span style={ls}>Type de Client {req}</span>} name="typeClient" rules={[{ required: true, message: 'Champ requis' }]} className={fc('typeClient')}>
+              <Form.Item label={<span style={ls}>Type de Client {req}</span>} name="typeClient" rules={[{ required: true, message: 'Champ requis' }]} className={fc('typeClient')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Valeurs alignees Workday, B2C retire</span>}>
                 <Select placeholder="Sélectionnez" size="large" options={typeClientOptions} />
               </Form.Item>
               <Form.Item label={<span style={ls}>Nature (Activité) {req}</span>} name="nature" rules={[{ required: true, message: 'Champ requis' }]} className={fc('nature')}>
@@ -375,7 +494,7 @@ export default function ClientForm({
               </Form.Item>
             </div>
             <div className="grid grid-cols-2 gap-6">
-              <Form.Item label={<span style={ls}>Téléphone principal {req}</span>} name="telephone" rules={[{ required: true, message: 'Champ requis' }]} className={fc('telephone')}>
+              <Form.Item label={<span style={ls}>Téléphone principal</span>} name="telephone" className={fc('telephone')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Champ facultatif</span>}>
                 <Input placeholder="+33 6 12 34 56 78" size="large" prefix={<PhoneOutlined style={{ color: 'var(--muted-foreground)' }} />} suffix={doneIcon('telephone')} />
               </Form.Item>
               <Form.Item label={<span style={ls}>Email client {req}</span>} name="email" normalize={(value) => value?.toLowerCase()} rules={[{ required: true, message: 'Champ requis' }, { type: 'email', message: 'Email invalide' }]} className={fc('email')}>
@@ -394,26 +513,52 @@ export default function ClientForm({
                   <Switch checkedChildren="Oui" unCheckedChildren="Non" />
                 </Form.Item>
               </div>
-              <Form.Item label={<span style={ls}>Legal ID (SIREN, etc.) {req}</span>} name="legalId" rules={[{ required: true, message: 'Champ requis' }]} className={fc('legalId')} style={{ marginBottom: 0 }} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Format selon le pays d'immatriculation</span>}>
-                <Input placeholder="Ex: 310 762 904" size="large" suffix={doneIcon('legalId')} />
+              <Form.Item label={<span style={ls}>Legal ID (SIREN, etc.) {req}</span>} name="legalId" rules={[{ required: true, message: 'Champ requis' }]} className={fc('legalId')} style={{ marginBottom: 0 }} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>{paysImmatriculation ? `Type d'identifiant pour ${countryCatalog.find((country) => country.value === paysImmatriculation)?.name ?? 'le pays sélectionné'}` : "Choisissez d'abord le pays d'immatriculation dans le bloc précédent"}</span>}>
+                <Select placeholder={paysImmatriculation ? 'Sélectionnez le type de Legal ID' : "Choisissez d'abord le pays d'immatriculation"} size="large" options={legalIdOptions} disabled={!paysImmatriculation} />
               </Form.Item>
             </div>
             <Form.Item noStyle shouldUpdate={(prev, cur) => prev.assujettTVA !== cur.assujettTVA}>
-              {({ getFieldValue }) =>
-                getFieldValue('assujettTVA') ? (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                    <Form.Item label={<span style={ls}>Numéro de TVA intracommunautaire {req}</span>} name="numeroTVA" normalize={(value) => value?.toUpperCase()} rules={[{ required: true, message: 'Champ requis' }]} className={fc('numeroTVA')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)' }}>Contrôle API VIES pour les pays de l'UE</span>}>
+              {({ getFieldValue }) => {
+                const vatRequired = getFieldValue('assujettTVA');
+
+                return (
+                  <motion.div key={vatRequired ? 'vat-required' : 'journal-required'} initial={{ opacity: 0.4, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                    <Form.Item
+                      label={<span style={ls}>Numéro de TVA intracommunautaire {vatRequired ? req : null}</span>}
+                      name="numeroTVA"
+                      normalize={(value) => value?.replace(/\s+/g, '').toUpperCase()}
+                      rules={[
+                        {
+                          validator: (_, value) => {
+                            const normalized = value?.replace(/\s+/g, '').toUpperCase();
+                            if (!normalized) {
+                              return vatRequired ? Promise.reject(new Error('Champ requis')) : Promise.resolve();
+                            }
+
+                            return /^[A-Z]{2}[A-Z0-9]{8,14}$/.test(normalized)
+                              ? Promise.resolve()
+                              : Promise.reject(new Error('Format TVA invalide'));
+                          },
+                        },
+                      ]}
+                      className={fc('numeroTVA')}
+                      extra={<span style={{ ...ls, color: 'var(--muted-foreground)' }}>{vatRequired ? "Controle API VIES pour les pays de l'UE" : 'Facultatif si le client nest pas assujetti a la TVA'}</span>}
+                    >
                       <Input placeholder="Ex: FR12345678901" size="large" suffix={doneIcon('numeroTVA')} />
                     </Form.Item>
-                  </motion.div>
-                ) : (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                    <Form.Item label={<span style={ls}>N° d'inscription au journal officiel {req}</span>} name="numeroInscription" rules={[{ required: true, message: 'Champ requis' }]} className={fc('numeroInscription')}>
+
+                    <Form.Item
+                      label={<span style={ls}>N° d'inscription au journal officiel {!vatRequired ? req : null}</span>}
+                      name="numeroInscription"
+                      rules={vatRequired ? [] : [{ required: true, message: 'Champ requis' }]}
+                      className={fc('numeroInscription')}
+                      extra={<span style={{ ...ls, color: 'var(--muted-foreground)' }}>{vatRequired ? 'Facultatif si le client est assujetti a la TVA' : 'Obligatoire si le client nest pas assujetti a la TVA'}</span>}
+                    >
                       <Input placeholder="Numéro d'inscription" size="large" suffix={doneIcon('numeroInscription')} />
                     </Form.Item>
                   </motion.div>
-                )
-              }
+                );
+              }}
             </Form.Item>
           </div>
         </Card>
@@ -436,51 +581,29 @@ export default function ClientForm({
                 <Input placeholder="Paris" size="large" suffix={doneIcon('adresseVille')} />
               </Form.Item>
             </div>
-            
-            {/* OK/KO ICO */}
-            <Alert
-              title={<span style={ls}>Vérification ICO (Intra-Community Operator)</span>}
-              description={
-                <div className="flex items-center gap-3 mt-2">
-                  <Form.Item name="icoStatus" style={{ marginBottom: 0 }}>
-                    <Select
-                      placeholder="Statut de vérification"
-                      size="large"
-                      style={{ width: '200px' }}
-                      options={[
-                        { value: 'ok', label: '✓ OK - Vérifié' },
-                        { value: 'ko', label: '✗ KO - Non vérifié' },
-                        { value: 'pending', label: '⏳ En attente' },
-                      ]}
-                    />
-                  </Form.Item>
-                  <span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '13px' }}>
-                    Statut de vérification ICO auprès des autorités
-                  </span>
-                </div>
-              }
-              type="info"
-              showIcon
-              style={{ backgroundColor: 'rgba(24,144,255,0.05)', border: '1px solid rgba(24,144,255,0.12)', borderRadius: 'var(--radius)' }}
-            />
           </div>
         </Card>
 
         <Card id="adresse-livraison" title="Adresse de Livraison" subtitle="Lieu de livraison des marchandises" icon={<GlobalOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
           <div className="space-y-6">
-            <Form.Item label={<span style={ls}>Identifiant de livraison</span>} name="identifiantLivraison" className={fc('identifiantLivraison')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)' }}>N° TVA du lieu de livraison (si différent)</span>}>
-              <Input placeholder="N° TVA du lieu de livraison" size="large" suffix={doneIcon('identifiantLivraison')} />
-            </Form.Item>
-            <Form.Item name="adresseLivraisonDifferente" valuePropName="checked" className={fc('adresseLivraisonDifferente')}>
+            <Form.Item name="adresseLivraisonDifferente" valuePropName="checked" className={fc('adresseLivraisonDifferente')} style={{ marginBottom: 0 }}>
               <Checkbox>
-                <span style={ls}>L'adresse de livraison est différente de l'adresse principale</span>
+                <span style={ls}>Le pays de livraison est différent de l'adresse principale</span>
               </Checkbox>
             </Form.Item>
             <Form.Item noStyle shouldUpdate={(prev, cur) => prev.adresseLivraisonDifferente !== cur.adresseLivraisonDifferente}>
               {({ getFieldValue }) =>
                 getFieldValue('adresseLivraisonDifferente') ? (
-                  <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="p-5 rounded-lg" style={{ backgroundColor: 'rgba(255,205,78,0.05)', border: '1px dashed var(--accent)' }}>
-                    <div className="grid grid-cols-4 gap-4 mb-6">
+                  <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 p-5 rounded-lg" style={{ backgroundColor: 'rgba(255,205,78,0.05)', border: '1px dashed var(--accent)' }}>
+                    <div className="grid grid-cols-2 gap-6">
+                      <Form.Item label={<span style={ls}>Pays de livraison {req}</span>} name="paysLivraison" rules={[{ required: true, message: 'Champ requis' }]} className={fc('paysLivraison')}>
+                        <Select placeholder="Sélectionnez le pays de livraison" size="large" showSearch filterOption={countryOptionFilter} options={paysOptions} />
+                      </Form.Item>
+                      <Form.Item label={<span style={ls}>N° TVA du lieu de livraison {req}</span>} name="identifiantLivraison" normalize={(value) => value?.replace(/\s+/g, '').toUpperCase()} rules={[{ required: true, message: 'Champ requis' }]} className={fc('identifiantLivraison')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)' }}>Tax ID du pays livré</span>}>
+                        <Input placeholder="N° TVA du lieu de livraison" size="large" suffix={doneIcon('identifiantLivraison')} />
+                      </Form.Item>
+                    </div>
+                    <div className="grid grid-cols-4 gap-4">
                       <Form.Item label={<span style={ls}>N° Rue {req}</span>} name="livraisonNumero" rules={[{ required: true, message: 'Requis' }]} className={fc('livraisonNumero')}>
                         <Input placeholder="123" size="large" suffix={doneIcon('livraisonNumero')} />
                       </Form.Item>
@@ -497,7 +620,13 @@ export default function ClientForm({
                       </Form.Item>
                     </div>
                   </motion.div>
-                ) : null
+                ) : (
+                  <div className="px-1">
+                    <p className="m-0" style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '13px' }}>
+                      Si non, aucune information complémentaire n'est attendue.
+                    </p>
+                  </div>
+                )
               }
             </Form.Item>
           </div>
@@ -520,16 +649,23 @@ export default function ClientForm({
         <Card id="entite-facturante" title="Entité Facturante" subtitle="Informations de facturation" icon={<BankOutlined style={{ fontSize: '18px', color: 'var(--primary)' }} />}>
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-6">
-              <Form.Item label={<span style={ls}>Pays Facturant {req}</span>} name="paysFacturant" rules={[{ required: true, message: 'Champ requis' }]} className={fc('paysFacturant')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Remplace la notion E-one Environment</span>}>
+              <Form.Item label={<span style={ls}>Pays Decathlon {req}</span>} name="paysFacturant" rules={[{ required: true, message: 'Champ requis' }]} className={fc('paysFacturant')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Le choix du pays met a jour la liste des societes fiscales</span>}>
                 <Select placeholder="Sélectionnez le pays" size="large" showSearch filterOption={countryOptionFilter} options={paysOptions} />
               </Form.Item>
-              <Form.Item label={<span style={ls}>Ship From (Tax ID Pays Client)</span>} name="shipFrom" normalize={(value) => value?.toUpperCase()} className={fc('shipFrom')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Identifiant fiscal du pays d'expédition</span>}>
-                <Input placeholder="Tax ID pays du client" size="large" suffix={doneIcon('shipFrom')} />
+              <Form.Item label={<span style={ls}>Ship From (Tax ID Decathlon)</span>} name="shipFrom" normalize={(value) => value?.toUpperCase()} className={fc('shipFrom')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>Identifiant fiscal du pays d'expedition</span>}>
+                <Input placeholder="Renseigné selon le pays Decathlon" size="large" disabled suffix={doneIcon('shipFrom')} />
               </Form.Item>
             </div>
             
-            <Form.Item label={<span style={ls}>Nom de l'entité facturante {req}</span>} name="nomEntiteFacturante" rules={[{ required: true, message: 'Champ requis' }]} className={fc('nomEntiteFacturante')}>
-              <Input placeholder="Nom de l'entité" size="large" suffix={doneIcon('nomEntiteFacturante')} />
+            <Form.Item label={<span style={ls}>Société fiscale / entité facturante {req}</span>} name="nomEntiteFacturante" rules={[{ required: true, message: 'Champ requis' }]} className={fc('nomEntiteFacturante')} extra={<span style={{ ...ls, color: 'var(--muted-foreground)', fontSize: '12px' }}>{typeClient === 'franchise' ? 'Plusieurs sociétés fiscales peuvent être proposées pour un franchisé' : 'Une seule société fiscale est proposée pour le pays sélectionné'}</span>}>
+              <Radio.Group
+                disabled={!paysFacturant}
+                className="flex flex-col gap-3"
+                options={billingEntityOptions.map((option) => ({
+                  value: option.value,
+                  label: option.label,
+                }))}
+              />
             </Form.Item>
             
             <Alert
@@ -741,9 +877,22 @@ export default function ClientForm({
                           </Form.Item>
                         </div>
 
-                        <Form.Item label={<span style={ls}>Email comptable local</span>} name={`${countryCode}_emailComptable`}>
-                          <Input placeholder="comptabilite@entreprise.fr" size="large" type="email" prefix={<MailOutlined style={{ color: 'var(--muted-foreground)' }} />} />
-                        </Form.Item>
+                        <div className="grid grid-cols-2 gap-4">
+                          <Form.Item label={<span style={ls}>Vérification ICO</span>} name={`${countryCode}_icoStatus`}>
+                            <Select
+                              placeholder="Statut de vérification"
+                              size="large"
+                              options={[
+                                { value: 'ok', label: 'OK - Vérifié' },
+                                { value: 'ko', label: 'KO - Non vérifié' },
+                                { value: 'pending', label: 'En attente' },
+                              ]}
+                            />
+                          </Form.Item>
+                          <Form.Item label={<span style={ls}>Email comptable local</span>} name={`${countryCode}_emailComptable`}>
+                            <Input placeholder="comptabilite@entreprise.fr" size="large" type="email" prefix={<MailOutlined style={{ color: 'var(--muted-foreground)' }} />} />
+                          </Form.Item>
+                        </div>
                       </div>
                     ),
                     style: { 
